@@ -1,0 +1,20 @@
+# Dataset files
+cifar-10-python.tar
+cifar-10-python.tar.gz
+cifar-10-batches-py/
+
+# Guide files
+multi_exit_resnet_guide.md
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Checkpoints and cache
+checkpoints/
+cache/
+data/
+
+# Jupyter
+.ipynb_checkpoints/
