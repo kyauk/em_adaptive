@@ -1,0 +1,164 @@
+"""
+
+Multi-Exit ResNet-18 Architecture
+
+Here we are implementing a ResNet-18 architecture with multiple exit points. Resnet backbone is frozen
+and exit classifiers are added after each residual block group.
+
+"""
+from models.exits import ExitClassifier
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torchvision import models
+
+class MultiExitResNet(nn.Module):
+    def __init__(self, num_classes=10, pretrained=True, freeze_backbone=True):
+        super(MultiExitResNet, self).__init__()
+
+        self.num_classes = num_classes
+        self.pretrained = pretrained
+        self.freeze_backbone = freeze_backbone
+
+        # Load the pretraiend ResNet-18 model
+        resnet18 = models.resnet18(pretrained=pretrained)
+
+        # Now we want to decompose ResNet-18 into components for feature extraction
+        self.conv1 = resnet18.conv1
+        self.bn1 = resnet18.bn1
+        self.relu = resnet18.relu
+        self.maxpool = resnet18.maxpool
+
+        # Residual block groups
+        self.layer1 = resnet18.layer1
+        self.layer2 = resnet18.layer2
+        self.layer3 = resnet18.layer3
+        self.layer4 = resnet18.layer4
+
+        # Freeze the backbone if requested
+        if freeze_backbone:
+            self._freeze_backbone()
+
+        # This is where we'll add exit classfiers
+        self.exit1 = ExitClassifier(64, num_classes)
+        self.exit2 = ExitClassifier(128, num_classes)
+        self.exit3 = ExitClassifier(256, num_classes)
+        self.exit4 = ExitClassifier(512, num_classes)
+
+    def _freeze_backbone(self):
+        for param in self.conv1.parameters():
+            param.requires_grad = False
+        for param in self.bn1.parameters():
+            param.requires_grad = False
+        for param in self.layer1.parameters():
+            param.requires_grad = False
+        for param in self.layer2.parameters():
+            param.requires_grad = False
+        for param in self.layer3.parameters():
+            param.requires_grad = False
+        for param in self.layer4.parameters():
+            param.requires_grad = False
+        
+        print("This message is to notify the user that the backbone has been frozen.")
+
+    # build the forward pass
+    def forward(self, x, return_all_exits=False):
+        # initial convolution
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.relu(x)
+        x = self.maxpool(x)
+
+        # forward through residual blocks
+        f1 = self.layer1(x)
+        f2 = self.layer2(f1)
+        f3 = self.layer3(f2)
+        f4 = self.layer4(f3)
+
+        if return_all_exits:
+            return {
+                'exit1': self.exit1(f1),
+                'exit2': self.exit2(f2),
+                'exit3': self.exit3(f3),
+                'exit4': self.exit4(f4),
+            }
+        else:
+            return self.exit4(f4)
+
+    # build forward pass up to a specific layer, and extract that specific layer's features
+    def forward_to_layer(self, x, layer_num):
+        # initial convolution
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.relu(x)
+        x = self.maxpool(x)
+
+        # forward through residual blocks
+        if layer_num >=1:
+            x = self.layer1(x)
+        if layer_num >=2:
+            x = self.layer2(x)
+        if layer_num >=3:
+            x = self.layer3(x)
+        if layer_num >=4:
+            x = self.layer4(x)
+        
+        return x
+
+    def extract_all_features(self, x):
+        # avoid extra computation and bookkeeping
+        with torch.no_grad():
+            # initial convolution
+            x = self.conv1(x)
+            x = self.bn1(x)
+            x = self.relu(x)
+            x = self.maxpool(x)
+            
+            # extract features at each layer
+            f1 = self.layer1(x)
+            f2 = self.layer2(f1)
+            f3 = self.layer3(f2)
+            f4 = self.layer4(f3)
+            
+            return {
+                'layer1': f1.cpu(),
+                'layer2': f2.cpu(),
+                'layer3': f3.cpu(),
+                'layer4': f4.cpu()
+            }
+def test_model():
+    """Quick test to verify the model works."""
+    print("Testing MultiExitResNet18...")
+    
+    # Create model
+    model = MultiExitResNet(num_classes=10, pretrained=True, freeze_backbone=True)
+    model.eval()
+    
+    # Test with dummy input (CIFAR-10 size)
+    x = torch.randn(4, 3, 32, 32)
+    
+    # Test feature extraction
+    print("\n1. Testing feature extraction per layer:")
+    for layer_num in [1, 2, 3, 4]:
+        features = model.forward_to_layer(x, layer_num)
+        print(f"   Layer {layer_num}: {features.shape}")
+    
+    # Test full forward pass
+    print("\n2. Testing forward pass with all exits:")
+    outputs = model.forward(x, return_all_exits=True)
+    for exit_name, output in outputs.items():
+        print(f"   {exit_name}: {output.shape}")
+    
+    # Test feature extraction for caching
+    print("\n3. Testing feature extraction for caching:")
+    cached_features = model.extract_all_features(x)
+    for layer_name, features in cached_features.items():
+        print(f"   {layer_name}: {features.shape}")
+    
+    print("\nAll tests passed!")
+
+
+if __name__ == '__main__':
+    test_model()
+
+
