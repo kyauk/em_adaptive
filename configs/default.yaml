@@ -10,7 +10,7 @@ dataset:
 # Model
 model:
   backbone: resnet18
-  pretrained: true
+  pretrained: false
   freeze_backbone: true
   num_exits: 4
   exit_channels: [64, 128, 256, 512]

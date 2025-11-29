@@ -14,7 +14,7 @@ Deep neural networks apply uniform computation to all inputs regardless of compl
 
 ### System Architecture
 
-We augment a pretrained ResNet-18 with four early exit classifiers positioned after each residual block group. The backbone network remains frozen to eliminate gradient interference and isolate the routing problem from representation learning.
+We use a ResNet-18 backbone trained from scratch on CIFAR-10 to ensure optimal feature resolution (32x32). We augment this backbone with four early exit classifiers positioned after each residual block group. The backbone network is frozen after initial training to eliminate gradient interference and isolate the routing problem from representation learning.
 
 **Exit Points:**
 - Exit 1: Post-Layer1 (64-dimensional features, ~25% FLOPs)

@@ -13,21 +13,22 @@ import torch.nn.functional as F
 from torchvision import models
 
 class MultiExitResNet(nn.Module):
-    def __init__(self, num_classes=10, pretrained=True, freeze_backbone=True):
+    def __init__(self, num_classes=10, freeze_backbone=True):
         super(MultiExitResNet, self).__init__()
 
         self.num_classes = num_classes
-        self.pretrained = pretrained
         self.freeze_backbone = freeze_backbone
 
-        # Load the pretraiend ResNet-18 model
-        resnet18 = models.resnet18(pretrained=pretrained)
+        # Load standard ResNet-18 structure (weights don't matter as we'll modify/train)
+        resnet18 = models.resnet18(weights=None)
 
-        # Now we want to decompose ResNet-18 into components for feature extraction
-        self.conv1 = resnet18.conv1
+        # Modify for CIFAR-10 (32x32 images)
+        # Replace 7x7 conv stride 2 with 3x3 conv stride 1
+        self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = resnet18.bn1
         self.relu = resnet18.relu
-        self.maxpool = resnet18.maxpool
+        # Remove maxpool for CIFAR-10 to preserve spatial dimensions
+        self.maxpool = nn.Identity()
 
         # Residual block groups
         self.layer1 = resnet18.layer1
@@ -131,7 +132,7 @@ def test_model():
     print("Testing MultiExitResNet18...")
     
     # Create model
-    model = MultiExitResNet(num_classes=10, pretrained=True, freeze_backbone=True)
+    model = MultiExitResNet(num_classes=10, freeze_backbone=True)
     model.eval()
     
     # Test with dummy input (CIFAR-10 size)

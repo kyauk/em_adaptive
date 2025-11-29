@@ -5,6 +5,7 @@ Goal of this is to save intermediate features after running ResNet-18 Backbone o
 """
 
 import torch
+import os
 from tqdm import tqdm
 from models.multi_exit_rnet import MultiExitResNet
 
@@ -57,8 +58,20 @@ if __name__ == '__main__':
     print("=== Feature Caching Script ===\n")
     
     # Create model
+    # Create model
     print("Loading model...")
-    model = MultiExitResNet(num_classes=10, pretrained=True, freeze_backbone=True)
+    model = MultiExitResNet(num_classes=10, freeze_backbone=True)
+    
+    # Load trained backbone weights
+    backbone_path = 'checkpoints/backbone/resnet18_cifar10_best.pth'
+    if os.path.exists(backbone_path):
+        print(f"Loading backbone from {backbone_path}")
+        # We need to load state_dict but filter out exit layers if they exist in checkpoint (they shouldn't yet)
+        # The backbone training script saves the whole model state_dict
+        state_dict = torch.load(backbone_path, map_location='cpu')
+        model.load_state_dict(state_dict, strict=False)
+    else:
+        print(f"Warning: Backbone checkpoint not found at {backbone_path}. Using random init (bad!)")
     
     # Get dataloaders
     print("Loading CIFAR-10 dataloaders...")

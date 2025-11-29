@@ -5,8 +5,8 @@
 ---
 
 ## 📊 Overall Progress Tracker
-- [ ] Day 1 (Nov 28) - Core Architecture
-- [ ] Day 2 (Nov 29) - Training Pipeline
+- [x] Day 1 (Nov 28) - Core Architecture
+- [x] Day 2 (Nov 29) - Training Pipeline
 - [ ] Day 3 (Nov 30) - EM Algorithm
 - [ ] Day 4 (Dec 1) - Routers & Baselines
 - [ ] Day 5 (Dec 2) - Experiments
@@ -17,22 +17,22 @@
 ---
 
 ## 🔴 Day 1: Thursday, Nov 28 - CRITICAL FOUNDATION
-**Goal: Get core architecture running**
+**Goal: Get core architecture running (Native CIFAR-10 Backbone)**
 
 ### Feature Caching System (2 hours)
-- [ ] Implement FeatureCache class in `algorithms/feature_cache.py`
-- [ ] Add methods to extract features from all exits
-- [ ] Pre-compute features for training set (50k samples)
-- [ ] Pre-compute features for test set (10k samples)
-- [ ] Save cached features to disk (use `torch.save`)
-- [ ] Test loading cached features
+- [x] Implement FeatureCache class in `algorithms/feature_cache.py`
+- [x] Add methods to extract features from all exits
+- [x] Pre-compute features for training set (50k samples)
+- [x] Pre-compute features for test set (10k samples)
+- [x] Save cached features to disk (use `torch.save`)
+- [x] Test loading cached features
 
 ### Configuration (30 mins)
-- [ ] Create `configs/default.yaml`
-- [ ] Add hyperparameters: learning rates, batch sizes
-- [ ] Add lambda values: [0.1, 0.2, 0.5, 1.0]
-- [ ] Add EM iterations: 10
-- [ ] Add router hidden dimension: 64
+- [x] Create `configs/default.yaml`
+- [x] Add hyperparameters: learning rates, batch sizes
+- [x] Add lambda values: [0.1, 0.2, 0.5, 1.0]
+- [x] Add EM iterations: 10
+- [x] Add router hidden dimension: 64
 
 ---
 
@@ -40,28 +40,28 @@
 **Goal: Train exit classifiers**
 
 ### Exit Classifier Training (3 hours)
-- [ ] Implement training loop in `training/train_exits.py`
-- [ ] Load cached features from disk
-- [ ] Create optimizer (SGD, lr=0.01)
-- [ ] Train all 4 exit classifiers simultaneously
-- [ ] Add progress logging (loss per epoch)
-- [ ] Save trained weights to `checkpoints/exits.pth`
-- [ ] Verify training converges (loss decreases)
+- [x] Implement training loop in `training/train_exits.py`
+- [x] Load cached features from disk
+- [x] Create optimizer (SGD, lr=0.01)
+- [x] Train all 4 exit classifiers simultaneously
+- [x] Add progress logging (loss per epoch)
+- [x] Save trained weights to `checkpoints/exits.pth`
+- [x] Verify training converges (loss decreases)
 
 ### Basic Evaluation (2 hours)
-- [ ] Implement accuracy computation in `training/evaluate.py`
-- [ ] Add `evaluate_exits()` function
-- [ ] Test Exit 1 accuracy on test set
-- [ ] Test Exit 2 accuracy on test set
-- [ ] Test Exit 3 accuracy on test set
-- [ ] Test Exit 4 accuracy on test set
-- [ ] Document all accuracies (should be >70%)
+- [x] Implement accuracy computation in `training/evaluate.py`
+- [x] Add `evaluate_exits()` function
+- [x] Test Exit 1 accuracy on test set
+- [x] Test Exit 2 accuracy on test set
+- [x] Test Exit 3 accuracy on test set
+- [x] Test Exit 4 accuracy on test set
+- [x] Document all accuracies (should be >70%)
 
 ### Sanity Checks (1 hour)
-- [ ] Plot training loss curves
-- [ ] Verify Exit 4 has highest accuracy
-- [ ] Check gradient flow (no NaN values)
-- [ ] Save baseline metrics to results file
+- [x] Plot training loss curves
+- [x] Verify Exit 4 has highest accuracy
+- [x] Check gradient flow (no NaN values)
+- [x] Save baseline metrics to results file
 
 ---
 
