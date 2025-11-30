@@ -7,7 +7,7 @@
 ## 📊 Overall Progress Tracker
 - [x] Day 1 (Nov 28) - Core Architecture
 - [x] Day 2 (Nov 29) - Training Pipeline
-- [ ] Day 3 (Nov 30) - EM Algorithm
+- [x] Day 3 (Nov 30) - EM Algorithm
 - [ ] Day 4 (Dec 1) - Routers & Baselines
 - [ ] Day 5 (Dec 2) - Experiments
 - [ ] Day 6 (Dec 3) - Visualization
@@ -69,14 +69,14 @@
 **Goal: Implement core EM routing**
 
 ### EM Routing Algorithm (4 hours)
-- [ ] Implement EMRouter class in `algorithms/em_routing.py`
-- [ ] Implement E-step: compute posteriors P(z|x,y)
-- [ ] Add accuracy checking (indicator function)
-- [ ] Add cost computation (k/4 normalization)
-- [ ] Implement M-step: update priors π_k
-- [ ] Add convergence tracking (log-likelihood)
-- [ ] Test with lambda=0.5 on small subset
-- [ ] Verify EM converges in <10 iterations
+- [x] Implement EMRouter class in `algorithms/em_routing.py`
+- [x] Implement E-step: compute posteriors P(z|x,y)
+- [x] Add accuracy checking (indicator function)
+- [x] Add cost computation (k/4 normalization)
+- [x] Implement M-step: update priors π_k
+- [x] Add convergence tracking (log-likelihood)
+- [x] Test with lambda=0.5 on small subset
+- [x] Verify EM converges in <10 iterations
 - [ ] Run full EM on entire training set
 
 ### Router Network (2 hours)

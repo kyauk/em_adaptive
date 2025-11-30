@@ -110,10 +110,10 @@ def train_exits():
             total_loss += loss.item()
             pbar.set_postfix({'loss': total_loss / (pbar.n + 1)})
         
-        # Step the scheduler
+        # scheduler step
         scheduler.step()
         
-        # Save Checkpoint (every 10 epochs)
+        # checkpoint every 10 epochs
         if (epoch + 1) % 10 == 0:
             save_dir = config['training_exits']['save_dir']
             os.makedirs(save_dir, exist_ok=True)

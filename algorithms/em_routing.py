@@ -23,54 +23,90 @@ class EMRouting:
         self.lambda_val = lambda_val
         self.device = next(model.parameters()).device
         
-        # TODO: Define computational costs for each exit (normalized 0 to 1)
-        # Suggestion: [0.25, 0.50, 0.75, 1.00]
-        self.costs = None 
-
+        self.costs = torch.tensor([0.25, 0.50, 0.75, 1.00]).to(self.device)
+        self.priors = (torch.ones(4) / 4).to(self.device)
     def get_costs(self):
         return self.costs
 
-    def e_step(self, features_tuple, targets):
+    def e_step(self, features_tuple, labels):
         """
         Compute soft assignment probabilities P(z=k|x) for a batch.
         
         Args:
             features_tuple: (f1, f2, f3, f4) tuple of feature tensors
-            targets: Ground truth labels [B]
+            labels: Ground truth labels [B]
             
         Returns:
             assignments: Soft assignments [B, 4]
         """
-        # TODO: Implement the E-step logic
-        # 1. Get logits from all exits
-        # 2. Calculate P(correct | x, exit_k)
-        # 3. Calculate Utility = P(correct) - lambda * Cost
-        # 4. Compute Softmax(Utility) -> Assignments
+        eps = 1e-10
+        # Get logits from all exits
+        f1, f2, f3, f4 = features_tuple
+        out1 = self.model.exit1(f1)
+        out2 = self.model.exit2(f2)
+        out3 = self.model.exit3(f3)
+        out4 = self.model.exit4(f4)
+        logits_tuple = torch.stack([out1, out2, out3, out4], dim=1)
+        # Calculate P(correct | x, exit_k)
+        probs = F.softmax(logits_tuple, dim=2)
+        labels = labels.view(labels.size(0), 1, 1)
+        labels = labels.expand(-1, 4, -1)
+        p_correct_given_exit = probs.gather(2, labels).squeeze(2)
+        p_correct = torch.log(p_correct_given_exit) + torch.log(self.priors)
+        # Numerator = log(P(correct | x, exit_k)) + log(P(exit_k)) - lambda * Cost
+        numerator = p_correct - (self.lambda_val * self.costs + eps)
+        # Adding Denominator (which happens to create a softmax)
+        assignments = F.softmax(numerator, dim=1)
+        return assignments
         
-        pass
-
-    def run(self, dataloader):
+    def m_step(self, all_assignments):
         """
-        Run E-step over the entire dataset to generate assignments.
+        Update priors pi_k based on aggregated assignments.
+        
+        Args:
+            all_assignments: [N, 4] tensor of soft assignments
+        """
+        # Calculate mean of assignments across the dataset 
+        new_priors = all_assignments.mean(dim=0)
+        # Update self.priors with these new values
+        self.priors = new_priors.to(self.device)
+        # Print the new priors to track progress
+        print(f"Updated priors: {self.priors.cpu().numpy()}")
+    def run(self, dataloader, iterations=5):
+        """
+        Run EM algorithm over the dataset.
         """
         self.model.eval()
-        all_assignments = []
-        all_targets = []
         
-        print(f"Generating assignments (lambda={self.lambda_val})...")
+        print(f"Running EM (lambda={self.lambda_val}) for {iterations} iterations...")
         
-        with torch.no_grad():
-            for f1, f2, f3, f4, labels in tqdm(dataloader):
-                # Move to device
-                f1, f2, f3, f4 = f1.to(self.device), f2.to(self.device), f3.to(self.device), f4.to(self.device)
-                labels = labels.to(self.device)
+        for i in range(iterations):
+            all_assignments = []
+            all_labels = []
+            
+            # E-Step: Pass over entire dataset
+            with torch.no_grad():
+                for f1, f2, f3, f4, labels in tqdm(dataloader):
+                    # Move to device
+                    f1, f2, f3, f4 = f1.to(self.device), f2.to(self.device), f3.to(self.device), f4.to(self.device)
+                    labels = labels.to(self.device)
+                    
+                    features = (f1, f2, f3, f4)
+                    
+                    # Compute assignments
+                    batch_assignments = self.e_step(features, labels)
+                    
+                    all_assignments.append(batch_assignments.cpu())
+                    all_labels.append(labels.cpu())
+            
+            # Concatenate all
+            full_assignments = torch.cat(all_assignments, dim=0)
+            
+            # M-Step: Update priors
+            self.m_step(full_assignments) 
+            
+            # Optional: Check convergence or print stats
+            exit_counts = full_assignments.sum(dim=0)
+            print(f"Iter {i+1}: Exit distribution: {exit_counts.cpu().numpy().astype(int)}")
                 
-                features = (f1, f2, f3, f4)
-                
-                # Compute assignments
-                batch_assignments = self.e_step(features, labels)
-                
-                all_assignments.append(batch_assignments.cpu())
-                all_targets.append(labels.cpu())
-                
-        return torch.cat(all_assignments, dim=0), torch.cat(all_targets, dim=0)
+        return full_assignments, torch.cat(all_labels, dim=0)

@@ -60,7 +60,7 @@ class MultiExitResNet(nn.Module):
         for param in self.layer4.parameters():
             param.requires_grad = False
         
-        print("This message is to notify the user that the backbone has been frozen.")
+        print("This message is to alert the user that the backbone has been frozen.")
 
     # build the forward pass
     def forward(self, x, return_all_exits=False):
@@ -127,6 +127,9 @@ class MultiExitResNet(nn.Module):
                 'layer3': f3.cpu(),
                 'layer4': f4.cpu()
             }
+"""
+Utilized AI-assistant to test the model
+"""
 def test_model():
     """Quick test to verify the model works."""
     print("Testing MultiExitResNet18...")
