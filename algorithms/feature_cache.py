@@ -7,7 +7,7 @@ Goal of this is to save intermediate features after running ResNet-18 Backbone o
 import torch
 import os
 from tqdm import tqdm
-from models.multi_exit_rnet import MultiExitResNet
+from models.multi_exit_resnet import MultiExitResNet
 
 def cache_dataset_features(model, dataloader, save_path):
     model.eval()
@@ -52,7 +52,7 @@ def load_cached_features(load_path):
 
 if __name__ == '__main__':
     # Imports
-    from models.multi_exit_rnet import MultiExitResNet
+    from models.multi_exit_resnet import MultiExitResNet
     from dataloader import get_cifar10_loaders
     
     print("=== Feature Caching Script ===\n")

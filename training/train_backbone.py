@@ -1,14 +1,14 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from models.multi_exit_rnet import MultiExitResNet
+from models.multi_exit_resnet import MultiExitResNet
 from dataloader import get_cifar10_loaders
 import os
 from tqdm import tqdm
 
 def train_backbone():
     # Config
-    EPOCHS = 30 # Should be enough to reach >90% with this architecture
+    EPOCHS = 30
     BATCH_SIZE = 128
     LR = 0.1
     MOMENTUM = 0.9

@@ -8,7 +8,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
-from models.multi_exit_rnet import MultiExitResNet
+from models.multi_exit_resnet import MultiExitResNet
 from models.exits import ExitClassifier
 from algorithms.feature_cache import load_cached_features
 import os

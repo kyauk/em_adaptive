@@ -127,42 +127,5 @@ class MultiExitResNet(nn.Module):
                 'layer3': f3.cpu(),
                 'layer4': f4.cpu()
             }
-"""
-Utilized AI-assistant to test the model
-"""
-def test_model():
-    """Quick test to verify the model works."""
-    print("Testing MultiExitResNet18...")
-    
-    # Create model
-    model = MultiExitResNet(num_classes=10, freeze_backbone=True)
-    model.eval()
-    
-    # Test with dummy input (CIFAR-10 size)
-    x = torch.randn(4, 3, 32, 32)
-    
-    # Test feature extraction
-    print("\n1. Testing feature extraction per layer:")
-    for layer_num in [1, 2, 3, 4]:
-        features = model.forward_to_layer(x, layer_num)
-        print(f"   Layer {layer_num}: {features.shape}")
-    
-    # Test full forward pass
-    print("\n2. Testing forward pass with all exits:")
-    outputs = model.forward(x, return_all_exits=True)
-    for exit_name, output in outputs.items():
-        print(f"   {exit_name}: {output.shape}")
-    
-    # Test feature extraction for caching
-    print("\n3. Testing feature extraction for caching:")
-    cached_features = model.extract_all_features(x)
-    for layer_name, features in cached_features.items():
-        print(f"   {layer_name}: {features.shape}")
-    
-    print("\nAll tests passed!")
-
-
-if __name__ == '__main__':
-    test_model()
 
 

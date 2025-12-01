@@ -80,11 +80,11 @@
 - [ ] Run full EM on entire training set
 
 ### Router Network (2 hours)
-- [ ] Implement Router class in `models/routers.py`
-- [ ] Create architecture: Linear(in_dim, 64) + ReLU + Linear(64, 1) + Sigmoid
-- [ ] Add forward pass
-- [ ] Test with dummy features
-- [ ] Verify output is in [0,1] range
+- [x] Implement Router class in `models/routers.py`
+- [x] Create architecture: Linear(in_dim, 64) + ReLU + Linear(64, 1) + Sigmoid
+- [x] Add forward pass
+- [x] Test with dummy features
+- [x] Verify output is in [0,1] range
 
 ### EM Assignment Generation (1 hour)
 - [ ] Run EM with lambda=0.1, save assignments
@@ -99,14 +99,14 @@
 **Goal: Train routers and implement baselines**
 
 ### Router Training (3 hours)
-- [ ] Implement training loop in `training/train_routers.py`
-- [ ] Load EM assignments from disk
-- [ ] Create binary labels (exit ≤ k)
-- [ ] Train 4 routers (one per exit)
-- [ ] Use BCE loss with Adam optimizer
-- [ ] Add learning rate: 0.001
-- [ ] Save trained routers to `checkpoints/routers/`
-- [ ] Test router predictions on validation set
+- [x] Implement training loop in `training/train_routers.py`
+- [x] Load EM assignments from disk
+- [x] Create binary labels (exit ≤ k)
+- [x] Train 4 routers (one per exit)
+- [x] Use BCE loss with Adam optimizer
+- [x] Add learning rate: 0.001
+- [x] Save trained routers to `checkpoints/routers.pth`
+- [x] Test router predictions on validation set
 
 ### Baseline Implementations (3 hours)
 - [ ] Create baseline functions in `experiments/baselines.py`
