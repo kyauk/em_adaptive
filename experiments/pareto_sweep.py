@@ -26,8 +26,8 @@ def run_pareto_sweep():
             entry = {
                 "lambda": lam,
                 "threshold": thresh,
-                "accuracy": metrics["accuracy"],
-                "cost": metrics["cost"]
+                "accuracy": float(metrics["accuracy"]),
+                "cost": float(metrics["cost"])
             }
             results.append(entry)
             

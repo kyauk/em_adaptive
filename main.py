@@ -25,7 +25,7 @@ class Config:
     CHECKPOINT_DIR = "checkpoints"
     BACKBONE_PATH = os.path.join(CHECKPOINT_DIR, "backbone/resnet18_cifar10_best.pth")
     ROUTER_PATH = os.path.join(CHECKPOINT_DIR, "routers.pth")
-    EXIT_PATH = os.path.join(CHECKPOINT_DIR, "exits_final.pth")
+    EXIT_PATH = os.path.join(CHECKPOINT_DIR, "exits/exits_final.pth")
     CACHED_TRAIN_FEATURES_PATH = "cached_features_train.pth"
     CACHED_TEST_FEATURES_PATH = "cached_features_test.pth"
     
