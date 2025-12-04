@@ -10,13 +10,13 @@ from models.multi_exit_resnet import MultiExitResNet
 
 class TestModels(unittest.TestCase):
     def test_router_shapes(self):
-        """Test Router forward pass with different input shapes."""
+        # Testing Router forward pass with different input shapes
         batch_size = 4
         input_dim = 64
         
         # Test MLP Router
         router = Router(input_dim=input_dim, use_mlp=True)
-        
+        # Need to check if GAP is working correctly
         # Case 1: 4D Input (B, C, H, W)
         x_4d = torch.randn(batch_size, input_dim, 32, 32)
         out = router(x_4d)
@@ -29,7 +29,7 @@ class TestModels(unittest.TestCase):
         self.assertEqual(out.shape, (batch_size, 1))
 
     def test_multiexit_resnet_shapes(self):
-        """Test MultiExitResNet forward pass and feature extraction."""
+        # Testing MultiExitResNet forward pass and feature extraction
         model = MultiExitResNet(num_classes=10)
         x = torch.randn(2, 3, 32, 32)
         

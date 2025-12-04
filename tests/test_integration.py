@@ -31,15 +31,15 @@ class TestIntegration(unittest.TestCase):
         self.loader = DataLoader(self.dataset, batch_size=5)
 
     def test_full_training_loop(self):
-        """Simulate the entire router training pipeline."""
-        print("\n--- Testing Full Training Pipeline ---")
+        # Simulating entire router training pipeline
+        print("\nTesting Full Training Loop...")
         
         # 1. EM Step
         em = EMRouting(self.model)
         assignments, _ = em.run(self.loader, iterations=2)
         hard_assignments = torch.argmax(assignments, dim=1)
-        
-        self.assertEqual(hard_assignments.shape, (10,))
+        # Expect size to be batch size
+        self.assertEqual(hard_assignments.shape, (batch_size,))
         
         # 2. Router Training Step
         router1 = Router(input_dim=64, use_mlp=True).to(self.device)
@@ -55,7 +55,7 @@ class TestIntegration(unittest.TestCase):
         for batch in router_loader:
             bf1, b_targets = batch
             # Target: 1 if Exit 0 is optimal
-            target = (b_targets == 0).float().view(-1, 1)
+            target = (b_targets == 0).float().unsqueeze(1)
             
             optimizer.zero_grad()
             pred = router1(bf1)
@@ -63,7 +63,7 @@ class TestIntegration(unittest.TestCase):
             loss.backward()
             optimizer.step()
             
-        print("✓ Training loop ran successfully")
+        print("Training loop ran successfully")
         
         # 3. Save Checkpoint (Mock)
         os.makedirs('tests/checkpoints_test', exist_ok=True)

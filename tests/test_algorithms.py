@@ -3,7 +3,7 @@ import torch
 import sys
 import os
 
-# Add project root to path
+# Adding project root to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from algorithms.em_routing import EMRouting
@@ -17,12 +17,12 @@ class TestEMRouting(unittest.TestCase):
         self.em = EMRouting(self.model, lambda_val=0.5)
 
     def test_initialization(self):
-        """Test that EM initializes with correct priors and costs."""
+        # Checking if initialized priors and costs correctly
         self.assertTrue(torch.allclose(self.em.priors, torch.tensor([0.25, 0.25, 0.25, 0.25])))
         self.assertTrue(torch.allclose(self.em.costs, torch.tensor([0.25, 0.50, 0.75, 1.00])))
 
     def test_e_step_shapes(self):
-        """Test E-step output shapes and probability properties."""
+        # Checking if size is correct and sum to 1
         batch_size = 4
         # Create dummy features
         f1 = torch.randn(batch_size, 64, 32, 32)
@@ -34,7 +34,7 @@ class TestEMRouting(unittest.TestCase):
 
         assignments = self.em.e_step(features, labels)
         
-        # Check shape
+        # Check shape, should be (batch_size, 4)
         self.assertEqual(assignments.shape, (batch_size, 4))
         
         # Check sum to 1 (valid probabilities)
@@ -42,7 +42,7 @@ class TestEMRouting(unittest.TestCase):
         self.assertTrue(torch.allclose(sums, torch.ones(batch_size), atol=1e-5))
 
     def test_m_step_update(self):
-        """Test that M-step correctly updates priors."""
+        # Checking if priors are updated correctly
         # Create dummy assignments (Batch=2, Exits=4)
         # Sample 1: 100% Exit 0
         # Sample 2: 100% Exit 1

@@ -110,8 +110,7 @@
 
 ### Baseline Implementations (3 hours)
 - [ ] Create baseline functions in `experiments/baselines.py`
-- [ ] Implement static baseline (always use Exit 4)
-- [ ] Implement random routing baseline
+- [ ] Implement fixed baselines (always use Exit 4)
 - [ ] Implement confidence-based (entropy < threshold)
 - [ ] Implement oracle baseline (optimal per-sample routing)
 - [ ] Evaluate all baselines on test set

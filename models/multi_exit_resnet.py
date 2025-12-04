@@ -1,9 +1,25 @@
 """
-
-Multi-Exit ResNet-18 Architecture
-
-Here we are implementing a ResNet-18 architecture with multiple exit points. Resnet backbone is frozen
+Implementing a ResNet-18 architecture with multiple exit points. Resnet backbone is frozen
 and exit classifiers are added after each residual block group.
+
+Multi-Exit ResNet-18 Architecture Visual:
+Input (32x32)
+    │
+    ▼
+[Conv1 + BN + ReLU]
+    │
+    ▼
+[Layer 1] ───────────> [Exit 1]
+    │
+    ▼
+[Layer 2] ───────────> [Exit 2]
+    │
+    ▼
+[Layer 3] ───────────> [Exit 3]
+    │
+    ▼
+[Layer 4] ───────────> [Final Exit]
+
 
 """
 from models.exits import ExitClassifier
@@ -63,7 +79,7 @@ class MultiExitResNet(nn.Module):
         print("This message is to alert the user that the backbone has been frozen.")
 
     # build the forward pass
-    def forward(self, x, return_all_exits=False):
+    def forward(self, x, return_all_exits=False, return_features=False):
         # initial convolution
         x = self.conv1(x)
         x = self.bn1(x)
@@ -76,15 +92,27 @@ class MultiExitResNet(nn.Module):
         f3 = self.layer3(f2)
         f4 = self.layer4(f3)
 
-        if return_all_exits:
-            return {
-                'exit1': self.exit1(f1),
-                'exit2': self.exit2(f2),
-                'exit3': self.exit3(f3),
-                'exit4': self.exit4(f4),
-            }
+        # each output dimension is [B,C]
+        outputs = {
+            'exit1': self.exit1(f1),
+            'exit2': self.exit2(f2),
+            'exit3': self.exit3(f3),
+            'exit4': self.exit4(f4),
+        }
+        
+        features = {
+            'feature1': f1,
+            'feature2': f2,
+            'feature3': f3,
+            'feature4': f4
+        }
+
+        if return_features:
+            return outputs, features
+        elif return_all_exits:
+            return outputs
         else:
-            return self.exit4(f4)
+            return outputs['exit4']
 
     # build forward pass up to a specific layer, and extract that specific layer's features
     def forward_to_layer(self, x, layer_num):

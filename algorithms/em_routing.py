@@ -13,7 +13,7 @@ import torch.nn.functional as F
 from tqdm import tqdm
 
 class EMRouting:
-    def __init__(self, model, lambda_val=0.5):
+    def __init__(self, model, lambda_val=0.05):
         """
         Args:
             model: The MultiExitResNet model (frozen)
@@ -41,6 +41,8 @@ class EMRouting:
         """
         eps = 1e-10
         # Get logits from all exits
+        # each feature tensor is [B, C, H, W]
+        # each out is [B, ]
         f1, f2, f3, f4 = features_tuple
         out1 = self.model.exit1(f1)
         out2 = self.model.exit2(f2)
@@ -49,10 +51,10 @@ class EMRouting:
         logits_tuple = torch.stack([out1, out2, out3, out4], dim=1)
         # Calculate P(correct | x, exit_k)
         probs = F.softmax(logits_tuple, dim=2)
-        labels = labels.view(labels.size(0), 1, 1)
+        labels = labels.unsqueeze(1).unsqueeze(2)
         labels = labels.expand(-1, 4, -1)
-        p_correct_given_exit = probs.gather(2, labels).squeeze(2)
-        p_correct = torch.log(p_correct_given_exit) + torch.log(self.priors)
+        log_p_correct_given_exit = torch.log(probs.gather(2, labels).squeeze(2))
+        p_correct = log_p_correct_given_exit + torch.log(self.priors)
         # Numerator = log(P(correct | x, exit_k)) + log(P(exit_k)) - lambda * Cost
         numerator = p_correct - (self.lambda_val * self.costs + eps)
         # Adding Denominator (which happens to create a softmax)
@@ -72,6 +74,8 @@ class EMRouting:
         self.priors = new_priors.to(self.device)
         # Print the new priors to track progress
         print(f"Updated priors: {self.priors.cpu().numpy()}")
+        return
+
     def run(self, dataloader, iterations=5):
         """
         Run EM algorithm over the dataset.
@@ -83,7 +87,6 @@ class EMRouting:
         for i in range(iterations):
             all_assignments = []
             all_labels = []
-            
             # E-Step: Pass over entire dataset
             with torch.no_grad():
                 for f1, f2, f3, f4, labels in tqdm(dataloader):

@@ -55,9 +55,6 @@ if __name__ == '__main__':
     from models.multi_exit_resnet import MultiExitResNet
     from dataloader import get_cifar10_loaders
     
-    print("=== Feature Caching Script ===\n")
-    
-    # Create model
     # Create model
     print("Loading model...")
     model = MultiExitResNet(num_classes=10, freeze_backbone=True)
@@ -89,7 +86,7 @@ if __name__ == '__main__':
     cache_dataset_features(model, test_loader, 'cached_features_test.pt')
     
     # Verify
-    print("\n=== Verification ===")
+    print("\nVerifying cached features...")
     train_features, train_labels = load_cached_features('cached_features_train.pt')
     test_features, test_labels = load_cached_features('cached_features_test.pt')
     
