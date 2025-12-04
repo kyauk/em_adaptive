@@ -14,8 +14,11 @@ from experiments.evaluation import Evaluator
 
 def run_comparison():
     # Parameters
-    thresholds = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-    lambda_vals = [0.5, 1.0, 1.5, 2.0, 2.5, 2.8, 3.0, 3.5, 4.0]
+    # BranchyNet uses entropy threshold (0-2.3), higher = more early exits
+    branchy_thresholds = [0.5, 0.7, 0.9, 1.1, 1.3, 1.5, 1.7, 1.9]
+    # EM uses probability threshold (0-1), lower = more early exits
+    em_thresholds = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+    lambda_val = 2.8
     
     # Load model and data
     model = setup_model(load_exits=True)
@@ -25,7 +28,7 @@ def run_comparison():
     # 1. BranchyNet sweep (no lambda dependency)
     print("\n=== BranchyNet Sweep ===")
     branchy_results = []
-    for thresh in thresholds:
+    for thresh in branchy_thresholds:
         result = evaluator.eval_branchynet(test_loader, threshold=thresh)
         branchy_results.append({
             'threshold': thresh,
@@ -36,20 +39,19 @@ def run_comparison():
     # 2. EM Routing sweep (different lambdas)
     print("\n=== EM Routing Sweep ===")
     em_results = []
-    for lam in lambda_vals:
-        print(f"\n--- Training routers with Lambda={lam} ---")
-        train_routers(lambda_val=lam)
-        
-        # Reload routers and evaluate at different thresholds
-        routers = setup_routers(load_routers=True)
-        for thresh in thresholds:
-            result = evaluator.eval_em_routing(test_loader, routers, threshold=thresh)
-            em_results.append({
-                'lambda': lam,
-                'threshold': thresh,
-                'accuracy': float(result['accuracy']),
-                'cost': float(result['cost'])
-            })
+    print(f"\n--- Training routers with Lambda={lambda_val} ---")
+    train_routers(lambda_val=lambda_val)
+    
+    # Reload routers and evaluate at different thresholds
+    routers = setup_routers(load_routers=True)
+    for thresh in em_thresholds:
+        result = evaluator.eval_em_routing(test_loader, routers, threshold=thresh)
+        em_results.append({
+            'lambda': lambda_val,
+            'threshold': thresh,
+            'accuracy': float(result['accuracy']),
+            'cost': float(result['cost'])
+        })
     
     # Save results
     os.makedirs('results', exist_ok=True)
@@ -80,6 +82,6 @@ def run_comparison():
     plt.tight_layout()
     plt.savefig('results/branchy_vs_em.png', dpi=150)
     print("\nPlot saved to results/branchy_vs_em.png")
-
+    
 if __name__ == "__main__":
     run_comparison()
