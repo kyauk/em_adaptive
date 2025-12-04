@@ -5,7 +5,7 @@ from main import train_models, evaluate_models, Config
 
 def run_pareto_sweep():
     # Define Sweep Params
-    lambda_vals = [0.001, 0.005, 0.01, 0.05, 0.1, 0.25, 0.5]
+    lambda_vals = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0]  # Middle range for balanced EM
     thresholds = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
     
     results = []
