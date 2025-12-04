@@ -19,8 +19,8 @@ def train_routers(lambda_val=0.05):
 
     # Load model
     model = MultiExitResNet()
-    if os.path.exists("checkpoints/exits_final.pth"):
-        state_dict = torch.load("checkpoints/exits_final.pth", map_location=device)
+    if os.path.exists("checkpoints/exits/exits_final.pth"):
+        state_dict = torch.load("checkpoints/exits/exits_final.pth", map_location=device)
         model_state = model.state_dict()
         filtered_state_dict = {k: v for k, v in state_dict.items() if k in model_state and v.size() == model_state[k].size()}
         model.load_state_dict(filtered_state_dict, strict=False)
@@ -134,7 +134,6 @@ def train_routers(lambda_val=0.05):
             
         print(f"Epoch {epoch+1}/{EPOCHS} complete. Loss: {loss1.item():.4f}, {loss2.item():.4f}, {loss3.item():.4f} | Acc: {acc1:.4f}, {acc2:.4f}, {acc3:.4f}")
 
-    # Save Routers
     os.makedirs('checkpoints', exist_ok=True)
     torch.save({
         'router1': router1.state_dict(),
