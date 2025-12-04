@@ -21,12 +21,9 @@ data/
 *.pt
 cached_features_*.pt
 
-# Results and experiments
-results/
+# Results (keep pareto results)
 figures/
 *.json
-*.png
-*.jpg
 
 # Jupyter
 .ipynb_checkpoints/
