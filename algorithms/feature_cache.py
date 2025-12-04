@@ -24,8 +24,15 @@ def cache_dataset_features(model, dataloader, save_path):
         features = model.extract_all_features(inputs)
 
         for i in range(4):
-            all_features[f'layer{i+1}'].append(features[f'layer{i+1}'])
-        all_labels.append(labels)
+            f = features[f'layer{i+1}']
+            # Optimization: Global Average Pool here to save massive memory
+            # (B, C, H, W) -> (B, C)
+            if f.dim() == 4:
+                f = torch.mean(f, dim=[2, 3])
+            
+            # Detach and move to CPU to save GPU memory
+            all_features[f'layer{i+1}'].append(f.detach().cpu())
+        all_labels.append(labels.detach().cpu())
    # concatenate batches into single tesnors 
     final_features = {
         'layer1': torch.cat(all_features['layer1'], dim=0),
