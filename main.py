@@ -1,10 +1,17 @@
+"""
+Main script for running EM Adaptive Computation.
+"""
+
+
 import argparse
 import torch
 import os
 import yaml
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
+from dataloader import get_cifar10_loaders
 
+# Import models, training scripts, algorithms, and evals 
 from models.multi_exit_resnet import MultiExitResNet
 from models.routers import Router
 from training.train_exits import train_exits
@@ -12,151 +19,152 @@ from training.train_routers import train_routers
 from algorithms.em_routing import EMRouting
 from experiments.evaluation import Evaluator
 
-def get_dataloader(batch_size=128, train=True):
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-    ])
-    dataset = datasets.CIFAR10(root='./cifar-10-batches-py', train=train, download=True, transform=transform)
-    return DataLoader(dataset, batch_size=batch_size, shuffle=train, num_workers=2)
+# configuration (device, path)
+class Config:
+    DEVICE = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
+    CHECKPOINT_DIR = "checkpoints"
+    BACKBONE_PATH = os.path.join(CHECKPOINT_DIR, "backbone/resnet18_cifar10_best.pth")
+    ROUTER_PATH = os.path.join(CHECKPOINT_DIR, "routers.pth")
+    EXIT_PATH = os.path.join(CHECKPOINT_DIR, "exits_final.pth")
+    CACHED_TRAIN_FEATURES_PATH = "cached_features_train.pth"
+    CACHED_TEST_FEATURES_PATH = "cached_features_test.pth"
+    
+    # Data
+    DATA_DIR = "./cifar-10-batches-py"
+    BATCH_SIZE = 128
+    # note to self: make this changeable with argparse later
+    NUM_WORKERS = 2
+    
+    # Model
+    NUM_CLASSES = 10
+    ROUTER_HIDDEN_DIM = 64
+    
 
-def load_config(path="configs/default.yaml"):
-    with open(path, 'r') as f:
-        return yaml.safe_load(f)
+    
+# dataloader
+def get_dataloader():
+    return get_cifar10_loaders(
+        data_dir=Config.DATA_DIR,
+        batch_size=Config.BATCH_SIZE, 
+        num_workers=Config.NUM_WORKERS,
+    )
+# setup the model
+def setup_model(device=Config.DEVICE, load_backbone=True, load_exits=False):
+    model = MultiExitResNet(num_classes=Config.NUM_CLASSES, freeze_backbone=True).to(Config.DEVICE)
+    if load_backbone:
+        if os.path.exists(Config.BACKBONE_PATH):
+            model.load_state_dict(torch.load(Config.BACKBONE_PATH, map_location=device), strict=False)
+            print("Backbone loaded!")
+        else:
+            print(f"Error: Backbone not found at {Config.BACKBONE_PATH}")    
+    if load_exits:
+        if os.path.exists(Config.EXIT_PATH):
+            state = torch.load(Config.EXIT_PATH, map_location=device)
+            # Handle the Nested Dict case:
+            if 'exit1' in state:
+                model.exit1.load_state_dict(state['exit1'])
+                model.exit2.load_state_dict(state['exit2'])
+                model.exit3.load_state_dict(state['exit3'])
+                model.exit4.load_state_dict(state['exit4'])
+            else:
+                model.load_state_dict(state)
+            print("Exits loaded!")
+        else:
+            print(f"Error: Exits not found at {Config.EXIT_PATH}")
+    return model
+
+def setup_routers(device=Config.DEVICE, load_routers=False):
+    routers = [
+        Router(input_dim=64, hidden_dim=Config.ROUTER_HIDDEN_DIM).to(device),
+        Router(input_dim=128, hidden_dim=Config.ROUTER_HIDDEN_DIM).to(device),
+        Router(input_dim=256, hidden_dim=Config.ROUTER_HIDDEN_DIM).to(device)
+    ]
+
+    if load_routers:
+        if os.path.exists(Config.ROUTER_PATH):
+            state = torch.load(Config.ROUTER_PATH, map_location=device)
+            routers[0].load_state_dict(state['router1'])
+            routers[1].load_state_dict(state['router2'])
+            routers[2].load_state_dict(state['router3'])
+            print("Routers loaded!")
+        else:
+            print(f"Error: Routers not found at {Config.ROUTER_PATH}")
+    return routers
+
+# training
+def train_models(mode, lambda_val=0.05):
+    if mode == "train_exits" or mode == "train_all":
+        print("Training Exits...")
+        train_exits()
+        print("Exits trained!")
+    if mode == "train_routers" or mode == "train_all":
+        print(f"Training Routers (Lambda = {lambda_val})...")
+        train_routers(lambda_val=lambda_val)
+        print("Routers trained!")
+
+# evaluation
+def evaluate_models(method, threshold=0.5):
+    model = setup_model(load_exits = True)
+    evaluator = Evaluator(model)
+    _, test_loader = get_dataloader()
+    routers = None
+    if method in ["em_routing", "all"]:
+        routers = setup_routers(load_routers=True)
+    if method == "resnet":
+        return evaluator.eval_resnet(test_loader)
+    elif method == "multiexit_fixed":
+        return evaluator.eval_multiexit_resnet_fixed(test_loader)
+    elif method == "multiexit_random":
+        return evaluator.eval_multiexit_resnet_random(test_loader)
+    elif method == "branchynet":
+        return evaluator.eval_branchynet(test_loader, threshold=threshold)
+    elif method == "em_routing":
+        return evaluator.eval_em_routing(test_loader, routers=routers, threshold=threshold)
+    elif method == "oracle":
+        return evaluator.eval_oracle(test_loader)
+    elif method == "all":
+        return evaluator.eval_all(test_loader, routers=routers, threshold=threshold)
+    else:
+        raise ValueError(f"Invalid method: {method}")
+    
 
 def main():
-    parser = argparse.ArgumentParser(description="EM Adaptive Computation")
+    parser = argparse.ArgumentParser(description="EM Adaptive Computation Orchestrator")
+    
+    # Top-level mode
     parser.add_argument("--mode", type=str, required=True, 
-                        choices=["train_exits", "run_em", "train_routers", "evaluate"],
-                        help="Action to perform")
+                        choices=["train", "evaluate"],
+                        help="Main execution mode: 'train' or 'evaluate'")
+    
+    # Training arguments
+    parser.add_argument("--train_target", type=str, default="train_all",
+                        choices=["train_exits", "train_routers", "train_all"],
+                        help="What to train (only used if mode='train')")
+    
+    # Evaluation arguments
     parser.add_argument("--method", type=str, default="all",
-                        choices=["resnet", "fixed", "random", "branchynet", "oracle", "em", "all"],
-                        help="Evaluation method")
-    parser.add_argument("--lambda_val", type=float, default=0.5, help="Lambda for EM routing")
-    parser.add_argument("--threshold", type=float, default=0.5, help="Entropy threshold for BranchyNet")
+                        choices=["resnet", "multiexit_fixed", "multiexit_random", 
+                                 "branchynet", "em_routing", "oracle", "all"],
+                        help="Evaluation method (only used if mode='evaluate')")
+    
+    # Hyperparameters
+    parser.add_argument("--lambda_val", type=float, default=0.05, 
+                        help="Lambda for EM routing (trade-off parameter)")
+    parser.add_argument("--threshold", type=float, default=0.5, 
+                        help="Entropy/Probability threshold for early exiting")
     
     args = parser.parse_args()
-    config = load_config()
-    if torch.cuda.is_available():
-        device = torch.device("cuda")
-    elif torch.backends.mps.is_available():
-        device = torch.device("mps")
-    else:
-        device = torch.device("cpu")
     
-    # Initialize Model
-    model = MultiExitResNet(num_classes=10, freeze_backbone=True).to(device)
+    print(f"---- EM Adaptive Computation ----")
+    print(f"Mode: {args.mode}")
+    print(f"Device: {Config.DEVICE}")
     
-    # 1. Load Backbone
-    backbone_path = "checkpoints/backbone/resnet18_cifar10_best.pth"
-    if os.path.exists(backbone_path):
-        print(f"Loading backbone from {backbone_path}...")
-        # Load with strict=False because backbone checkpoint won't have exits
-        try:
-            model.load_state_dict(torch.load(backbone_path, map_location=device), strict=False)
-        except Exception as e:
-            print(f"Warning: Failed to load backbone: {e}")
-    else:
-        print("Warning: Backbone checkpoint not found!")
-
-    # 2. Load Exits
-    # Only load if we are not training them (or if we want to continue training? usually we start fresh or load)
-    # But for evaluation we MUST load them.
-    if args.mode != "train_exits" and os.path.exists("checkpoints/exits_final.pth"):
-        print("Loading trained exit classifiers...")
-        exit_state = torch.load("checkpoints/exits_final.pth", map_location=device)
+    if args.mode == "train":
+        print(f"Training Target: {args.train_target}")
+        train_models(args.train_target, lambda_val=args.lambda_val)
         
-        # Check if it's a nested dict (e.g. {'exit1': state_dict, ...})
-        if 'exit1' in exit_state and isinstance(exit_state['exit1'], dict):
-            print("Detected nested exit checkpoint format.")
-            model.exit1.load_state_dict(exit_state['exit1'])
-            model.exit2.load_state_dict(exit_state['exit2'])
-            model.exit3.load_state_dict(exit_state['exit3'])
-            model.exit4.load_state_dict(exit_state['exit4'])
-        else:
-            # Try standard load
-            try:
-                model.load_state_dict(exit_state, strict=False)
-            except Exception as e:
-                print(f"Error loading exits: {e}")
-    
-    if args.mode == "train_exits":
-        print("Training Exit Classifiers...")
-        train_exits()
-
-    elif args.mode == "run_em":
-        print(f"Running EM Algorithm (Lambda={args.lambda_val})...")
-        # Load cached features
-        features_path = "cached_features_train.pt"
-        if not os.path.exists(features_path):
-            print("Cached features not found. Please run feature caching first.")
-            return
-            
-        # Load data
-        # We need to load data to pass to EM.run()
-        # But EMRouting.run() takes a dataloader.
-        # So we need to create a dataloader from cached features.
-        from algorithms.feature_cache import load_cached_features
-        features_dict, labels = load_cached_features(features_path)
-        dataset = torch.utils.data.TensorDataset(
-            features_dict['layer1'], features_dict['layer2'], 
-            features_dict['layer3'], features_dict['layer4'], labels
-        )
-        loader = DataLoader(dataset, batch_size=128, shuffle=False)
-        
-        em = EMRouting(model, lambda_val=args.lambda_val)
-        em.run(loader, iterations=10)
-
-    elif args.mode == "train_routers":
-        print("Training Routers...")
-        train_routers()
-
     elif args.mode == "evaluate":
-        print(f"Evaluating Method: {args.method}")
-        test_loader = get_dataloader(train=False)
-        evaluator = Evaluator(model)
-        
-        if args.method in ["resnet", "all"]:
-            evaluator.eval_resnet(test_loader)
-            
-        if args.method in ["fixed", "all"]:
-            evaluator.eval_multiexit_resnet_fixed(test_loader)
-            
-        if args.method in ["random", "all"]:
-            evaluator.eval_multiexit_resnet_random(test_loader)
-            
-        if args.method in ["branchynet", "all"]:
-            evaluator.eval_branchynet(test_loader, threshold=args.threshold)
-            
-        if args.method in ["oracle", "all"]:
-            evaluator.eval_oracle(test_loader)
-            
-        if args.method in ["em", "all"]:
-            # Load routers
-            routers = []
-            # Checkpoint path for routers
-            router_path = "checkpoints/routers.pth"
-            if os.path.exists(router_path):
-                router_state = torch.load(router_path, map_location=device)
-                # Assuming router_state is a list of state_dicts or a dict of state_dicts
-                # We need to know the structure.
-                # We need to know the structure.
-                # We instantiate 3 routers (for exits 1, 2, 3).
-                in_features = [64, 128, 256]
-                for i in range(3):
-                    r = Router(in_features[i], hidden_dim=64).to(device)
-                    routers.append(r)
-                
-                # Load weights properly
-                if isinstance(router_state, dict):
-                    for i in range(3):
-                        key = f"router{i+1}"
-                        if key in router_state:
-                            routers[i].load_state_dict(router_state[key])
-                
-                evaluator.eval_em_routing(test_loader, routers, threshold=args.threshold)
-            else:
-                print("Router checkpoint not found. Skipping EM evaluation.")   
-
+        print(f"Evaluation Method: {args.method}")
+        evaluate_models(args.method, threshold=args.threshold)
 if __name__ == "__main__":
     main()

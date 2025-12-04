@@ -9,7 +9,7 @@ from algorithms.em_routing import EMRouting
 from algorithms.feature_cache import load_cached_features
 from models.multi_exit_resnet import MultiExitResNet
 
-def train_routers():
+def train_routers(lambda_val=0.05):
     EPOCHS = 20
     TRAIN_FEATURES_PATH = "cached_features_train.pt"
     BATCH_SIZE = 128
@@ -19,12 +19,9 @@ def train_routers():
 
     # Load model
     model = MultiExitResNet()
-    # Load model with strict=False to handle potential backbone mismatches (7x7 vs 3x3)
-    # We only care about the Exit Classifiers being correct.
     if os.path.exists("checkpoints/exits_final.pth"):
         state_dict = torch.load("checkpoints/exits_final.pth", map_location=device)
         model_state = model.state_dict()
-        # Filter out mismatching keys (like conv1.weight)
         filtered_state_dict = {k: v for k, v in state_dict.items() if k in model_state and v.size() == model_state[k].size()}
         model.load_state_dict(filtered_state_dict, strict=False)
         print(f"Loaded checkpoint with {len(filtered_state_dict)}/{len(state_dict)} matched keys.")
@@ -50,8 +47,8 @@ def train_routers():
     train_loader = DataLoader(dataset, batch_size=BATCH_SIZE)
 
     # Generate EM Assignments
-    print("Running EM to generate targets...")
-    em = EMRouting(model)
+    print(f"Running EM to generate targets (Lambda={lambda_val})...")
+    em = EMRouting(model, lambda_val=lambda_val)
     assignments, all_labels = em.run(train_loader)
 
     # Compute Hard Assignments

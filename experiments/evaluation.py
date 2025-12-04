@@ -62,7 +62,7 @@ class Evaluator:
         for exit_name, stats in exit_stats.items():
             acc = stats['correct']/stats['total']
             avg_cost = stats['cost']/stats['total']
-            print(f"{exit_name}: Accuracy={acc:.4f}, Cost={avg_cost:.4f}")
+            print(f"Fixed on {exit_name}: Accuracy={acc:.4f}, Cost={avg_cost:.4f}")
             results[exit_name] = {"accuracy": acc, "cost": avg_cost}
         return results
 
@@ -267,6 +267,15 @@ class Evaluator:
         avg_cost = total_cost/total_samples
         print(f"EM Routing: Accuracy={acc:.4f}, Cost={avg_cost:.4f}")
         return {"accuracy": acc, "cost": avg_cost}
+
+    def eval_all(self, dataloader, routers, threshold=0.5):
+        self.eval_resnet(dataloader)
+        self.eval_multiexit_resnet_fixed(dataloader)
+        self.eval_multiexit_resnet_random(dataloader)
+        self.eval_branchynet(dataloader, threshold=threshold)
+        self.eval_em_routing(dataloader, routers=routers, threshold=threshold)
+        self.eval_oracle(dataloader)
+        return
         
                 
 
