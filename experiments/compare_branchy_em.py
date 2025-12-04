@@ -15,7 +15,7 @@ from experiments.evaluation import Evaluator
 def run_comparison():
     # Parameters
     thresholds = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-    lambda_vals = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
+    lambda_vals = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0]
     
     # Load model and data
     model = setup_model(load_exits=True)
@@ -29,8 +29,8 @@ def run_comparison():
         result = evaluator.eval_branchynet(test_loader, threshold=thresh)
         branchy_results.append({
             'threshold': thresh,
-            'accuracy': result['accuracy'],
-            'cost': result['cost']
+            'accuracy': float(result['accuracy']),
+            'cost': float(result['cost'])
         })
     
     # 2. EM Routing sweep (different lambdas)
@@ -47,8 +47,8 @@ def run_comparison():
             em_results.append({
                 'lambda': lam,
                 'threshold': thresh,
-                'accuracy': result['accuracy'],
-                'cost': result['cost']
+                'accuracy': float(result['accuracy']),
+                'cost': float(result['cost'])
             })
     
     # Save results
