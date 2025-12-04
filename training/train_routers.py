@@ -14,7 +14,7 @@ def train_routers(lambda_val=0.05):
     TRAIN_FEATURES_PATH = "cached_features_train.pt"
     BATCH_SIZE = 128
     USE_MLP = True  # Toggle: True for MLP, False for Linear
-    device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+    device = torch.device('cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu')
     print(f"Using device: {device}")
 
     # Load model
