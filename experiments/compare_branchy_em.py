@@ -66,13 +66,10 @@ def run_comparison():
     branchy_accs = [r['accuracy'] for r in branchy_results]
     plt.plot(branchy_costs, branchy_accs, 'k-o', linewidth=2, markersize=8, label='BranchyNet')
     
-    # EM Routing (one line per lambda)
-    colors = plt.cm.viridis([i/len(lambda_val) for i in range(len(lambda_val))])
-    for i, lam in enumerate(lambda_val):
-        lam_results = [r for r in em_results if r['lambda'] == lam]
-        costs = [r['cost'] for r in lam_results]
-        accs = [r['accuracy'] for r in lam_results]
-        plt.plot(costs, accs, '-s', color=colors[i], linewidth=1.5, markersize=6, label=f'EM λ={lam}')
+    # EM Routing (single lambda)
+    em_costs = [r['cost'] for r in em_results]
+    em_accs = [r['accuracy'] for r in em_results]
+    plt.plot(em_costs, em_accs, 'b-s', linewidth=2, markersize=8, label=f'EM λ={lambda_val}')
     
     plt.xlabel('Computational Cost', fontsize=12)
     plt.ylabel('Accuracy', fontsize=12)
