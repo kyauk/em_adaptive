@@ -14,9 +14,9 @@ from experiments.evaluation import Evaluator
 
 def run_comparison():
     # Parameters
-    # BranchyNet uses entropy threshold (0-2.3), higher = more early exits
-    branchy_thresholds = [0.5, 0.7, 0.9, 1.1, 1.3, 1.5, 1.7, 1.9]
-    # EM uses probability threshold (0-1), lower = more early exits
+    # BranchyNet uses entropy threshold (0.5-2.3), higher = more early exits
+    branchy_thresholds = [0.5, 0.9, 1.3, 1.7, 2.1, 2.3]
+    # EM uses probability threshold (0.1-0.9), lower = more early exits
     em_thresholds = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
     lambda_val = 2.8
     
