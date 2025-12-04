@@ -10,7 +10,7 @@ from algorithms.feature_cache import load_cached_features
 from models.multi_exit_resnet import MultiExitResNet
 
 def train_routers(lambda_val=0.05):
-    EPOCHS = 20
+    EPOCHS = 50  # Increase for better router convergence
     TRAIN_FEATURES_PATH = "cached_features_train.pt"
     BATCH_SIZE = 128
     USE_MLP = True  # Toggle: True for MLP, False for Linear
@@ -62,10 +62,31 @@ def train_routers(lambda_val=0.05):
     router3 = Router(input_dim=f3.shape[1], use_mlp=USE_MLP).to(device)
     routers = [router1, router2, router3]
 
-    # Define Optimizers and Criterion
+    # Calculate class weights for imbalance
+    # pos_weight = (num_neg / num_pos)
+    total = len(hard_assignments)
+    
+    n_pos1 = (hard_assignments == 0).sum().item()
+    w1 = (total - n_pos1) / (n_pos1 + 1e-5)
+    
+    n_pos2 = (hard_assignments == 1).sum().item()
+    w2 = (total - n_pos2) / (n_pos2 + 1e-5)
+    
+    n_pos3 = (hard_assignments == 2).sum().item()
+    w3 = (total - n_pos3) / (n_pos3 + 1e-5)
+    
+    print(f"Pos Weights: W1={w1:.2f}, W2={w2:.2f}, W3={w3:.2f}")
+
+    # Define Optimizers
     optimizers = [optim.Adam(r.parameters(), lr=0.001) for r in routers]
-    # Binary cross-entropy loss since we're working with binary classification
-    criterion = nn.BCELoss()
+    
+    # Custom Weighted BCE Loss
+    def weighted_bce(pred, target, weight):
+        # clamp for stability
+        pred = torch.clamp(pred, 1e-7, 1 - 1e-7)
+        loss = - (weight * target * torch.log(pred) + (1 - target) * torch.log(1 - pred))
+        return loss.mean()
+
     # Create New Dataset for Routers
     router_dataset = torch.utils.data.TensorDataset(f1, f2, f3, hard_assignments)
     router_loader = DataLoader(router_dataset, batch_size=BATCH_SIZE, shuffle=True)
@@ -77,33 +98,41 @@ def train_routers(lambda_val=0.05):
             bf1, bf2, bf3, b_labels = batch
             bf1, bf2, bf3 = bf1.to(device), bf2.to(device), bf3.to(device)
             b_labels = b_labels.to(device)
+            
             # training router 1
             target1 = (b_labels==0).float().unsqueeze(1)
             router1.train()
             optimizers[0].zero_grad()
             pred1 = router1(bf1)
-            loss1 = criterion(pred1, target1)
+            loss1 = weighted_bce(pred1, target1, w1)
             loss1.backward()
             optimizers[0].step()
+            
             # training router 2
             target2 = (b_labels==1).float().unsqueeze(1)
             router2.train()
             optimizers[1].zero_grad()
             pred2 = router2(bf2)
-            loss2 = criterion(pred2, target2)
+            loss2 = weighted_bce(pred2, target2, w2)
             loss2.backward()
             optimizers[1].step()
+            
             # training router 3
             target3 = (b_labels==2).float().unsqueeze(1)
             router3.train()
             optimizers[2].zero_grad()
             pred3 = router3(bf3)
-            loss3 = criterion(pred3, target3)
+            loss3 = weighted_bce(pred3, target3, w3)
             loss3.backward()
             optimizers[2].step()
             
             
-        print(f"Epoch {epoch+1}/{EPOCHS} complete.")
+            # Calculate accuracy
+            acc1 = ((pred1 > 0.5).float() == target1).float().mean().item()
+            acc2 = ((pred2 > 0.5).float() == target2).float().mean().item()
+            acc3 = ((pred3 > 0.5).float() == target3).float().mean().item()
+            
+        print(f"Epoch {epoch+1}/{EPOCHS} complete. Loss: {loss1.item():.4f}, {loss2.item():.4f}, {loss3.item():.4f} | Acc: {acc1:.4f}, {acc2:.4f}, {acc3:.4f}")
 
     # Save Routers
     os.makedirs('checkpoints', exist_ok=True)

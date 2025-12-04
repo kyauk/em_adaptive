@@ -46,8 +46,19 @@ def train_exits():
     print(f"Using device: {device}")
     
     # Init Model
+    # Init Model
     print("Initializing model...")
     model = MultiExitResNet(num_classes=10, freeze_backbone=True)
+    
+    # Load backbone weights (CRITICAL: otherwise we save random backbone weights!)
+    backbone_path = 'checkpoints/backbone/resnet18_cifar10_best.pth'
+    if os.path.exists(backbone_path):
+        print(f"Loading backbone from {backbone_path}")
+        state_dict = torch.load(backbone_path, map_location=device)
+        model.load_state_dict(state_dict, strict=False)
+    else:
+        print("Warning: Backbone checkpoint not found! Saving model will result in random backbone.")
+        
     model.to(device)
     
     # Data Prep
@@ -108,7 +119,12 @@ def train_exits():
             
             # updating progress bar
             total_loss += loss.item()
-            pbar.set_postfix({'loss': total_loss / (pbar.n + 1)})
+            
+            # Calculate train acc for this batch (just for exit 4 to keep it simple)
+            _, pred4 = out4.max(1)
+            acc4 = pred4.eq(labels).sum().item() / labels.size(0)
+            
+            pbar.set_postfix({'loss': total_loss / (pbar.n + 1), 'acc4': acc4})
         
         # scheduler step
         scheduler.step()

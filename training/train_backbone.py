@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 def train_backbone():
     # Config
-    EPOCHS = 30
+    EPOCHS = 100  # Increase for better backbone accuracy (~90%+)
     BATCH_SIZE = 128
     LR = 0.1
     MOMENTUM = 0.9

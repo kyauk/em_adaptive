@@ -198,6 +198,9 @@ class Evaluator:
         threshold: Probability threshold for exiting (default: 0.5)
         """
         self.model.eval()
+        for r in routers:
+            r.eval()
+            
         total_correct = 0
         total_samples = 0
         total_cost = 0
@@ -206,65 +209,64 @@ class Evaluator:
             for images, labels in dataloader:
                 images = images.to(self.device)
                 labels = labels.to(self.device)
-                # return all exits = True because we need to evaluate accuracy for each exit
-                # outputs are [num_exits, B, num_classes]
+                batch_size = images.size(0)
+                
+                # outputs are dict: {'exit1': [B, 10], ...}
+                # features are dict: {'feature1': [B, C, H, W], ...}
                 outputs, features = self.model(images, return_all_exits=True, return_features=True)
                 
-                # Get features from all 4 layers, features are [B, C, H, W]
+                # Initialize masks (False = hasn't exited yet)
+                has_exited = torch.zeros(batch_size, dtype=torch.bool).to(self.device)
+                final_preds = torch.zeros(batch_size, dtype=torch.long).to(self.device)
+                
+                # --- Exit 1 ---
                 f1 = features['feature1']
+                p1 = routers[0](f1).squeeze(1) # [B, 1] -> [B]
+                # Exit if p1 > threshold AND hasn't exited
+                mask1 = (p1 > threshold) & (~has_exited)
+                
+                if mask1.any():
+                    preds1 = outputs['exit1'][mask1].argmax(dim=1)
+                    final_preds[mask1] = preds1
+                    total_cost += self.cost[0].item() * mask1.sum().item()
+                    has_exited = has_exited | mask1
+
+                # --- Exit 2 ---
                 f2 = features['feature2']
+                p2 = routers[1](f2).squeeze(1)
+                mask2 = (p2 > threshold) & (~has_exited)
+                
+                if mask2.any():
+                    preds2 = outputs['exit2'][mask2].argmax(dim=1)
+                    final_preds[mask2] = preds2
+                    total_cost += self.cost[1].item() * mask2.sum().item()
+                    has_exited = has_exited | mask2
+
+                # --- Exit 3 ---
                 f3 = features['feature3']
-                f4 = features['feature4']
-                final_preds = torch.zeros(images.size(0), dtype=torch.long).to(self.device)
+                p3 = routers[2](f3).squeeze(1)
+                mask3 = (p3 > threshold) & (~has_exited)
                 
-                # run images through router 1 (example output is [0.1, 0.5, 0.8, 0.6...])
-                p1 = routers[0](f1)
-                # mask 
-                mask1 = (p1 > threshold).int().squeeze()
-                # add cost to total cost
-                total_cost += self.cost[0] * mask1.sum().item()
-                # get predictions from outputs to which exit to take
-                preds1 = outputs['exit1'][mask1==1].argmax(dim=1)
+                if mask3.any():
+                    preds3 = outputs['exit3'][mask3].argmax(dim=1)
+                    final_preds[mask3] = preds3
+                    total_cost += self.cost[2].item() * mask3.sum().item()
+                    has_exited = has_exited | mask3
 
-                # run images through router 2
-                p2 = routers[1](f2)
+                # --- Exit 4 (Final Fallback) ---
+                mask4 = ~has_exited
+                if mask4.any():
+                    preds4 = outputs['exit4'][mask4].argmax(dim=1)
+                    final_preds[mask4] = preds4
+                    total_cost += self.cost[3].item() * mask4.sum().item()
+                    has_exited = has_exited | mask4
                 
-                # mask, make sure to remove items that's been predicted by router 1
-                mask2 = (p2 > threshold).int().squeeze()
-                mask2 = mask2 * (mask1 == 0).int()
-                # add cost to total cost
-                total_cost += self.cost[1] * mask2.sum().item()
-                # get predictions from outputs to which exit to take
-                preds2 = outputs['exit2'][mask2==1].argmax(dim=1)
-
-                # run images through router 3
-                p3 = routers[2](f3)
-                # mask, make sure to remove items that's been predicted by router 1 and 2
-                mask3 = (p3 > threshold).int().squeeze()
-                mask3 = mask3 * (mask1 == 0).int() * (mask2 == 0).int()
-                # add cost to total cost
-                total_cost += self.cost[2] * mask3.sum().item()
-                # get predictions from outputs to which exit to take
-                preds3 = outputs['exit3'][mask3==1].argmax(dim=1)
-
-                # if no router predicted, use last exit
-                mask4 = (mask1 == 0).int() * (mask2 == 0).int() * (mask3 == 0).int()
-                # add cost to total cost
-                total_cost += self.cost[3] * mask4.sum().item()
-                # get predictions from outputs to which exit to take
-                preds4 = outputs['exit4'][mask4==1].argmax(dim=1)
-                
-                # update final predictions
-                final_preds[mask1==1] = preds1
-                final_preds[mask2==1] = preds2
-                final_preds[mask3==1] = preds3
-                final_preds[mask4==1] = preds4
-
+                # Accumulate stats
                 total_correct += (final_preds == labels).sum().item()
-                total_samples += final_preds.size(0)
+                total_samples += batch_size
 
-        acc = total_correct/total_samples
-        avg_cost = total_cost/total_samples
+        acc = total_correct / total_samples
+        avg_cost = total_cost / total_samples
         print(f"EM Routing: Accuracy={acc:.4f}, Cost={avg_cost:.4f}")
         return {"accuracy": acc, "cost": avg_cost}
 

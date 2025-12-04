@@ -73,7 +73,13 @@ if __name__ == '__main__':
         # We need to load state_dict but filter out exit layers if they exist in checkpoint (they shouldn't yet)
         # The backbone training script saves the whole model state_dict
         state_dict = torch.load(backbone_path, map_location='cpu')
-        model.load_state_dict(state_dict, strict=False)
+        missing, unexpected = model.load_state_dict(state_dict, strict=False)
+        print(f"Missing keys: {len(missing)}")
+        if len(missing) > 0:
+            print(f"Missing: {missing[:5]} ...")
+        print(f"Unexpected keys: {len(unexpected)}")
+        if len(unexpected) > 0:
+            print(f"Unexpected: {unexpected[:5]} ...")
     else:
         print(f"Warning: Backbone checkpoint not found at {backbone_path}. Using random init (bad!)")
     
