@@ -1,6 +1,6 @@
 # CS229 Project Checklist - EM Adaptive Computation
 **Due: December 5, 2024 (Midnight)**  
-**Current Date: November 28, 2024**
+**Current Date: December 3, 2024**
 
 ---
 
@@ -8,243 +8,102 @@
 - [x] Day 1 (Nov 28) - Core Architecture
 - [x] Day 2 (Nov 29) - Training Pipeline
 - [x] Day 3 (Nov 30) - EM Algorithm
-- [ ] Day 4 (Dec 1) - Routers & Baselines
-- [ ] Day 5 (Dec 2) - Experiments
-- [ ] Day 6 (Dec 3) - Visualization
-- [ ] Day 7 (Dec 4) - Report Writing
-- [ ] Day 8 (Dec 5) - Final Submission
+- [x] Day 4 (Dec 1) - Routers & Baselines
+- [x] Day 5 (Dec 2) - Main Pipeline
+- [ ] Day 6 (Dec 3) - Cloud Experiments
+- [ ] Day 7 (Dec 4) - Analysis & Visualization
+- [ ] Day 8 (Dec 5) - Final Report
 
 ---
 
-## 🔴 Day 1: Thursday, Nov 28 - CRITICAL FOUNDATION
-**Goal: Get core architecture running (Native CIFAR-10 Backbone)**
+## ✅ COMPLETED
 
-### Feature Caching System (2 hours)
-- [x] Implement FeatureCache class in `algorithms/feature_cache.py`
-- [x] Add methods to extract features from all exits
-- [x] Pre-compute features for training set (50k samples)
-- [x] Pre-compute features for test set (10k samples)
-- [x] Save cached features to disk (use `torch.save`)
-- [x] Test loading cached features
+### Core Architecture (Days 1-2)
+- [x] Feature caching system (train & test)
+- [x] Multi-exit ResNet-18 implementation
+- [x] Exit classifier training pipeline
+- [x] Basic evaluation framework
 
-### Configuration (30 mins)
-- [x] Create `configs/default.yaml`
-- [x] Add hyperparameters: learning rates, batch sizes
-- [x] Add lambda values: [0.1, 0.2, 0.5, 1.0]
-- [x] Add EM iterations: 10
-- [x] Add router hidden dimension: 64
+### EM Algorithm & Routers (Days 3-4)
+- [x] EM routing algorithm implementation
+- [x] Router network architecture
+- [x] Router training pipeline
+- [x] Integration with exit classifiers
 
----
+### Main Pipeline (Day 5)
+- [x] Complete `main.py` rewrite with argparse
+- [x] Training orchestration (`train_exits`, `train_routers`)
+- [x] Evaluation orchestration (all methods)
+- [x] Configuration management (`Config` class)
+- [x] Robust checkpoint loading (handles nested dicts, missing files)
 
-## 🟠 Day 2: Friday, Nov 29 - TRAINING PIPELINE
-**Goal: Train exit classifiers**
+### Baseline Implementations
+- [x] Standard ResNet-18 evaluation
+- [x] Fixed exit baselines (1, 2, 3, 4)
+- [x] Random routing baseline
+- [x] BranchyNet (entropy-based) baseline
+- [x] Oracle (optimal per-sample) baseline
 
-### Exit Classifier Training (3 hours)
-- [x] Implement training loop in `training/train_exits.py`
-- [x] Load cached features from disk
-- [x] Create optimizer (SGD, lr=0.01)
-- [x] Train all 4 exit classifiers simultaneously
-- [x] Add progress logging (loss per epoch)
-- [x] Save trained weights to `checkpoints/exits.pth`
-- [x] Verify training converges (loss decreases)
-
-### Basic Evaluation (2 hours)
-- [x] Implement accuracy computation in `training/evaluate.py`
-- [x] Add `evaluate_exits()` function
-- [x] Test Exit 1 accuracy on test set
-- [x] Test Exit 2 accuracy on test set
-- [x] Test Exit 3 accuracy on test set
-- [x] Test Exit 4 accuracy on test set
-- [x] Document all accuracies (should be >70%)
-
-### Sanity Checks (1 hour)
-- [x] Plot training loss curves
-- [x] Verify Exit 4 has highest accuracy
-- [x] Check gradient flow (no NaN values)
-- [x] Save baseline metrics to results file
+### Experiment Infrastructure
+- [x] `experiments/pareto_sweep.py` - Automated parameter sweep
+- [x] `experiments/visualization.py` - Pareto frontier plotting
+- [x] `experiments/evaluation.py` - All evaluation methods
 
 ---
 
-## 🟡 Day 3: Saturday, Nov 30 - EM ALGORITHM
-**Goal: Implement core EM routing**
+## 🔄 IN PROGRESS
 
-### EM Routing Algorithm (4 hours)
-- [x] Implement EMRouter class in `algorithms/em_routing.py`
-- [x] Implement E-step: compute posteriors P(z|x,y)
-- [x] Add accuracy checking (indicator function)
-- [x] Add cost computation (k/4 normalization)
-- [x] Implement M-step: update priors π_k
-- [x] Add convergence tracking (log-likelihood)
-- [x] Test with lambda=0.5 on small subset
-- [x] Verify EM converges in <10 iterations
-- [ ] Run full EM on entire training set
+### Day 6: Cloud Experiments (Dec 3)
+- [ ] Upload code to cloud server
+- [ ] Install dependencies
+- [ ] Generate cached features (if not uploaded)
+- [ ] Run `pareto_sweep.py` with full lambda/threshold grid
+- [ ] Monitor training progress
+- [ ] Download results and plots
 
-### Router Network (2 hours)
-- [x] Implement Router class in `models/routers.py`
-- [x] Create architecture: Linear(in_dim, 64) + ReLU + Linear(64, 1) + Sigmoid
-- [x] Add forward pass
-- [x] Test with dummy features
-- [x] Verify output is in [0,1] range
-
-### EM Assignment Generation (1 hour)
-- [ ] Run EM with lambda=0.1, save assignments
-- [ ] Run EM with lambda=0.5, save assignments
-- [ ] Run EM with lambda=1.0, save assignments
-- [ ] Save assignments to `checkpoints/em_assignments/`
-- [ ] Visualize assignment distributions (histogram)
+**Estimated Runtime:**
+- Feature caching: ~10 mins
+- Per lambda value: ~30-45 mins (EM + 20 epochs router training)
+- Total for 7 lambdas × 9 thresholds: ~4-6 hours
 
 ---
 
-## 🟢 Day 4: Sunday, Dec 1 - ROUTERS & BASELINES
-**Goal: Train routers and implement baselines**
+## 📋 TODO
 
-### Router Training (3 hours)
-- [x] Implement training loop in `training/train_routers.py`
-- [x] Load EM assignments from disk
-- [x] Create binary labels (exit ≤ k)
-- [x] Train 4 routers (one per exit)
-- [x] Use BCE loss with Adam optimizer
-- [x] Add learning rate: 0.001
-- [x] Save trained routers to `checkpoints/routers.pth`
-- [x] Test router predictions on validation set
+### Day 7: Analysis & Visualization (Dec 4)
+- [ ] Generate all figures
+  - [ ] Pareto frontier (Accuracy vs Cost)
+  - [ ] Exit distribution per lambda
+  - [ ] Convergence plots
+- [ ] Create results tables
+  - [ ] Method comparison (accuracy, cost, speedup)
+  - [ ] Best operating points per lambda
+- [ ] Analyze failure cases
+- [ ] Document key findings
 
-### Baseline Implementations (3 hours)
-- [ ] Create baseline functions in `experiments/baselines.py`
-- [ ] Implement fixed baselines (always use Exit 4)
-- [ ] Implement confidence-based (entropy < threshold)
-- [ ] Implement oracle baseline (optimal per-sample routing)
-- [ ] Evaluate all baselines on test set
-- [ ] Save baseline results to `results/baselines.json`
-
----
-
-## 🔵 Day 5: Monday, Dec 2 - COMPREHENSIVE EXPERIMENTS
-**Goal: Run all experiments and collect results**
-
-### Main Entry Point (1 hour)
-- [ ] Create `main.py` with argument parser
-- [ ] Add mode: train_exits
-- [ ] Add mode: run_em
-- [ ] Add mode: train_routers
-- [ ] Add mode: evaluate
-- [ ] Test end-to-end pipeline
-- [ ] Document usage in README
-
-### Full Pipeline Execution (3 hours)
-- [ ] Run complete pipeline with lambda=0.1
-- [ ] Run complete pipeline with lambda=0.5
-- [ ] Run complete pipeline with lambda=1.0
-- [ ] Evaluate EM routing vs static baseline
-- [ ] Evaluate EM routing vs random baseline
-- [ ] Evaluate EM routing vs confidence baseline
-- [ ] Evaluate EM routing vs oracle baseline
-- [ ] Save all results to `results/experiments.json`
-
-### Ablation Studies (2 hours)
-- [ ] Implement ablations in `experiments/ablations.py`
-- [ ] Study: EM iterations (5, 10, 20)
-- [ ] Study: Router depth (1-layer vs 2-layer)
-- [ ] Study: Hard vs soft EM assignments
-- [ ] Save ablation results to `results/ablations.json`
+### Day 8: Final Report (Dec 5)
+- [ ] Write paper sections
+  - [ ] Abstract
+  - [ ] Introduction
+  - [ ] Methods
+  - [ ] Experiments
+  - [ ] Results
+  - [ ] Discussion
+  - [ ] Conclusion
+- [ ] Create submission package
+- [ ] Final code cleanup
+- [ ] Submit before midnight
 
 ---
 
-## 🟣 Day 6: Tuesday, Dec 3 - VISUALIZATION & ANALYSIS
-**Goal: Create all figures and analyze results**
+## 🐛 KNOWN ISSUES FIXED
 
-### Visualization Implementation (3 hours)
-- [ ] Implement plotting functions in `experiments/visualization.py`
-- [ ] Create Pareto frontier plot (accuracy vs FLOPs)
-- [ ] Create exit distribution heatmap (per-class)
-- [ ] Create EM convergence plot (log-likelihood)
-- [ ] Create router threshold sensitivity plot
-- [ ] Create comparison bar chart (all baselines)
-- [ ] Save all figures to `figures/`
-
-### Results Analysis (2 hours)
-- [ ] Create results table (accuracy, avg FLOPs, speedup)
-- [ ] Compute statistical significance (t-tests)
-- [ ] Analyze per-class routing patterns
-- [ ] Identify failure cases
-- [ ] Document key findings in `RESULTS.md`
-
-### Code Cleanup (1 hour)
-- [ ] Add docstrings to all classes
-- [ ] Add docstrings to all functions
-- [ ] Remove commented-out code
-- [ ] Add type hints
-- [ ] Run code formatter (black)
-- [ ] Test reproducibility with fixed seed
-
----
-
-## 📝 Day 7: Wednesday, Dec 4 - FINAL REPORT
-**Goal: Write paper and prepare submission**
-
-### Report Writing (6 hours)
-- [ ] Introduction (1 hour)
-  - [ ] Motivation
-  - [ ] Problem statement
-  - [ ] Our contribution
-- [ ] Related Work (30 mins)
-  - [ ] Multi-exit networks
-  - [ ] EM algorithm applications
-- [ ] Methods (1.5 hours)
-  - [ ] Architecture description
-  - [ ] EM formulation
-  - [ ] Router training
-- [ ] Experiments (1.5 hours)
-  - [ ] Setup description
-  - [ ] Main results
-  - [ ] Ablation studies
-- [ ] Discussion & Conclusion (1 hour)
-  - [ ] Key findings
-  - [ ] Limitations
-  - [ ] Future work
-- [ ] Abstract (30 mins)
-  - [ ] Concise summary
-- [ ] References (add proper citations)
-
-### Final Checks (2 hours)
-- [ ] Run entire pipeline from scratch
-- [ ] Verify all figures render correctly
-- [ ] Check all tables formatted properly
-- [ ] Update README with final results
-- [ ] Create requirements.txt
-- [ ] Test on clean environment
-- [ ] Zip code for submission
-
----
-
-## 🎯 Day 8: Thursday, Dec 5 (DEADLINE) - SUBMISSION
-**Goal: Final polish and submit before midnight**
-
-### Morning: Final Review (3 hours)
-- [ ] Proofread entire paper (grammar, typos)
-- [ ] Check figure captions
-- [ ] Verify table numbers
-- [ ] Check equation formatting
-- [ ] Verify all citations present
-- [ ] Get feedback from classmate (if possible)
-- [ ] Make final revisions
-
-### Afternoon: Submission Package (2 hours)
-- [ ] Create submission folder
-- [ ] Include: Final report PDF
-- [ ] Include: Code (zipped)
-- [ ] Include: README with instructions
-- [ ] Include: requirements.txt
-- [ ] Include: Sample outputs
-- [ ] Test code on fresh clone
-- [ ] Verify everything runs
-
-### Evening: Submit (BEFORE MIDNIGHT)
-- [ ] Upload to Canvas/submission portal
-- [ ] Verify file uploaded correctly
-- [ ] Check submission confirmation
-- [ ] Backup to Google Drive
-- [ ] Backup to GitHub (private repo)
-- [ ] **CELEBRATE!** 🎉
+### Fixed Bugs
+- [x] **CRITICAL**: Device selection in `train_routers.py` (now checks CUDA first)
+- [x] Backbone loading with `strict=False` for checkpoint mismatch
+- [x] Router input dimensions (64, 128, 256 for ResNet-18)
+- [x] Dataloader unpacking in `evaluate_models`
+- [x] Return values from `evaluate_models` for programmatic access
 
 ---
 
@@ -254,25 +113,40 @@
 - [ ] EM routing beats random baseline
 - [ ] EM routing beats confidence baseline
 - [ ] Clear Pareto frontier shown
-- [ ] At least 3 lambda values evaluated
+- [ ] At least 5 lambda values evaluated
 
-### Time-Savers
-- [ ] Use CPU + feature caching (don't need GPU)
-- [ ] Start long experiments overnight
-- [ ] Don't over-optimize - working > perfect
-- [ ] Focus on core novelty (EM routing)
+### Code Status
+- ✅ All training pipelines verified
+- ✅ All evaluation methods verified
+- ✅ Device handling supports CUDA/MPS/CPU
+- ✅ Checkpoint management robust
+- ✅ No data leakage (train on train, eval on test)
 
 ### Emergency Backup Plans
-- [ ] If EM doesn't converge: simplify formulation
-- [ ] If routers don't train: use EM assignments directly
-- [ ] If experiments take too long: use smaller subset
-- [ ] If time runs short: prioritize main results over ablations
+- If cloud runs slow: Reduce lambda/threshold grid
+- If EM doesn't converge: Already verified locally, should work
+- If time runs short: Prioritize main results over ablations
 
 ---
 
-## 📊 Daily Time Budget (8 hours/day)
-- **Implementation:** 50% (4 hours)
-- **Experiments:** 30% (2.4 hours)
-- **Analysis/Writing:** 20% (1.6 hours)
+## 🚀 Ready for Cloud Deployment
 
-**Good luck! You've got this! 💪**
+**Files to Upload:**
+```
+├── main.py ✅
+├── experiments/
+│   ├── evaluation.py ✅
+│   ├── pareto_sweep.py ✅
+│   └── visualization.py ✅
+├── training/
+│   ├── train_exits.py ✅
+│   └── train_routers.py ✅ (CUDA bug fixed)
+├── algorithms/
+│   ├── em_routing.py ✅
+│   └── feature_cache.py ✅
+├── models/ ✅
+├── checkpoints/ (or retrain on cloud)
+└── cached_features_*.pt (or regenerate on cloud)
+```
+
+**Good luck! Final push! 💪🚀**

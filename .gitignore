@@ -10,12 +10,43 @@ multi_exit_resnet_guide.md
 __pycache__/
 *.pyc
 *.pyo
+*.pyd
 
 # Checkpoints and cache
 checkpoints/
 cache/
 data/
 
+# Cached features (large files)
+*.pt
+cached_features_*.pt
+
+# Results and experiments
+results/
+figures/
+*.json
+*.png
+*.jpg
+
 # Jupyter
 .ipynb_checkpoints/
-*.pt
+*.ipynb
+
+# Logs
+*.log
+logs/
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment
+.env
+venv/
+env/

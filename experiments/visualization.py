@@ -1,4 +1,6 @@
 import json
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend for cloud servers
 import matplotlib.pyplot as plt
 import os
 
