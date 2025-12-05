@@ -5,8 +5,8 @@ from main import train_models, evaluate_models, Config
 
 def run_pareto_sweep():
     # Define Sweep Params
-    lambda_vals = [0.1, 0.5, 1.0, 1.5, 1.8, 2.0, 2.5, 2.8, 3.0, 3.5, 4.0]
-    thresholds = [0.1, 0.2, 0.3, 0.4, 0.5, 0.55, 0.6, 0.65, 0.7]
+    lambda_vals = [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0]
+    thresholds = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
     
     results = []
     
