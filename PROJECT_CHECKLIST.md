@@ -10,8 +10,8 @@
 - [x] Day 3 (Nov 30) - EM Algorithm
 - [x] Day 4 (Dec 1) - Routers & Baselines
 - [x] Day 5 (Dec 2) - Main Pipeline
-- [ ] Day 6 (Dec 3) - Cloud Experiments
-- [ ] Day 7 (Dec 4) - Analysis & Visualization
+- [x] Day 6 (Dec 3) - Cloud Experiments
+- [x] Day 7 (Dec 4) - Analysis & Visualization
 - [ ] Day 8 (Dec 5) - Final Report
 
 ---
@@ -49,37 +49,28 @@
 - [x] `experiments/visualization.py` - Pareto frontier plotting
 - [x] `experiments/evaluation.py` - All evaluation methods
 
----
+### Cloud Experiments (Day 6)
+- [x] Upload code to cloud server
+- [x] Install dependencies
+- [x] Generate cached features (if not uploaded)
+- [x] Run `pareto_sweep.py` with full lambda/threshold grid
+- [x] Monitor training progress
+- [x] Download results and plots
 
-## 🔄 IN PROGRESS
-
-### Day 6: Cloud Experiments (Dec 3)
-- [ ] Upload code to cloud server
-- [ ] Install dependencies
-- [ ] Generate cached features (if not uploaded)
-- [ ] Run `pareto_sweep.py` with full lambda/threshold grid
-- [ ] Monitor training progress
-- [ ] Download results and plots
-
-**Estimated Runtime:**
-- Feature caching: ~10 mins
-- Per lambda value: ~30-45 mins (EM + 20 epochs router training)
-- Total for 7 lambdas × 9 thresholds: ~4-6 hours
+### Analysis & Visualization (Day 7)
+- [x] Generate all figures
+  - [x] Pareto frontier (Accuracy vs Cost)
+  - [x] Exit distribution per lambda
+  - [x] Convergence plots
+- [x] Create results tables
+  - [x] Method comparison (accuracy, cost, speedup)
+  - [x] Best operating points per lambda
+- [x] Analyze failure cases
+- [x] Document key findings
 
 ---
 
 ## 📋 TODO
-
-### Day 7: Analysis & Visualization (Dec 4)
-- [ ] Generate all figures
-  - [ ] Pareto frontier (Accuracy vs Cost)
-  - [ ] Exit distribution per lambda
-  - [ ] Convergence plots
-- [ ] Create results tables
-  - [ ] Method comparison (accuracy, cost, speedup)
-  - [ ] Best operating points per lambda
-- [ ] Analyze failure cases
-- [ ] Document key findings
 
 ### Day 8: Final Report (Dec 5)
 - [ ] Write paper sections
@@ -110,10 +101,10 @@
 ## 📌 Critical Reminders
 
 ### Must-Have Results
-- [ ] EM routing beats random baseline
-- [ ] EM routing beats confidence baseline
-- [ ] Clear Pareto frontier shown
-- [ ] At least 5 lambda values evaluated
+- [x] EM routing beats random baseline
+- [x] EM routing beats confidence baseline (BranchyNet)
+- [x] Clear Pareto frontier shown
+- [x] At least 5 lambda values evaluated
 
 ### Code Status
 - ✅ All training pipelines verified
