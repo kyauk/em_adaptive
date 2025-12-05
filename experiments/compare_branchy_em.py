@@ -18,7 +18,7 @@ def run_comparison():
     branchy_thresholds = [0.5, 0.9, 1.3, 1.7, 2.1, 2.3]
     # EM uses probability threshold (0.1-0.9), lower = more early exits
     em_thresholds = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
-    lambda_val = 2.8
+    lambda_val = 1.5
     
     # Load model and data
     model = setup_model(load_exits=True)
