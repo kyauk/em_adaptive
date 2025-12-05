@@ -72,11 +72,42 @@ def plot_pareto_frontier():
     p_costs = [p[0] for p in pareto_points]
     p_accs = [p[1] for p in pareto_points]
     
-    plt.plot(p_costs, p_accs, 'k--', linewidth=2, label='Pareto Frontier')
+    plt.plot(p_costs, p_accs, 'k--', linewidth=2, label='EM Pareto Frontier')
+
+    # --- Add BranchyNet Baseline ---
+    # We run a quick evaluation here or hardcode points if we don't want to import everything.
+    # Better to import and run since it's fast (no training).
+    try:
+        from main import setup_model, get_dataloader
+        from experiments.evaluation import Evaluator
+        
+        print("Running BranchyNet baseline for comparison...")
+        model = setup_model(load_exits=True)
+        evaluator = Evaluator(model)
+        _, test_loader = get_dataloader()
+        
+        branchy_thresholds = [0.1, 0.5, 0.9, 1.3, 1.7, 2.1, 2.5]
+        b_costs = []
+        b_accs = []
+        
+        for t in branchy_thresholds:
+            res = evaluator.eval_branchynet(test_loader, threshold=t)
+            b_costs.append(res['cost'])
+            b_accs.append(res['accuracy'])
+            
+        # Sort for plotting
+        b_points = sorted(zip(b_costs, b_accs), key=lambda x: x[0])
+        b_costs = [p[0] for p in b_points]
+        b_accs = [p[1] for p in b_points]
+        
+        plt.plot(b_costs, b_accs, 'r-^', linewidth=2, label='BranchyNet')
+        
+    except Exception as e:
+        print(f"Could not run BranchyNet baseline: {e}")
 
     plt.xlabel('Computational Cost (Normalized)')
     plt.ylabel('Accuracy')
-    plt.title('EM Routing: Accuracy vs Cost (Pareto Frontier)')
+    plt.title('EM Routing vs BranchyNet: Pareto Frontier')
     plt.grid(True, linestyle='--', alpha=0.7)
     plt.legend()
     
