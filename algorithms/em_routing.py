@@ -53,12 +53,11 @@ class EMRouting:
         # expand labels to match the shape of logits_tuple
         labels = labels.unsqueeze(1).unsqueeze(2)
         labels = labels.expand(-1, 4, -1)   
-        probs = F.softmax(logits_tuple, dim=2)
-        # key idea: using logits rather than probabilities because it'll produce really small values. also avoid logging this, although mathemtically it is indeed log p(y|x|z)
-        p_correct_given_exit = probs.gather(2, labels).squeeze(2)
-        p_correct = p_correct_given_exit * self.priors 
+        log_probs = F.log_softmax(logits_tuple, dim=2)
+        p_correct_given_exit = log_probs.gather(2, labels).squeeze(2)
+        p_correct = p_correct_given_exit + torch.log(self.priors)[None, :]
         # Numerator = log(P(correct | x, exit_k)) + log(P(exit_k)) - lambda * Cost
-        numerator = p_correct - (self.lambda_val * self.costs + eps)
+        numerator = p_correct - (self.lambda_val * self.costs[None, :])
         # Adding Denominator (which happens to create a softmax)
         assignments = F.softmax(numerator, dim=1)
         return assignments
