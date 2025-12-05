@@ -49,21 +49,16 @@ class EMRouting:
         out3 = self.model.exit3(f3)
         out4 = self.model.exit4(f4)
         logits_tuple = torch.stack([out1, out2, out3, out4], dim=1)
-        B,K,C = logits_tuple.shape
-        device = logits_tuple.device
-        # Calculate margin, which will mimic P(correct | x, exit_k). Intuition behind this is bigger margin, bigger confidence, which mimicks p(y|x,z) in a more stable way.
+        # Calculate P(correct | x, exit_k)
         # expand labels to match the shape of logits_tuple
-        correct_logits = logits_tuple.gather(2, labels[:, None, None]).squeeze(2)
-        top2 = logits_tuple.topk(2, dim=2).values
-        max1 = top2[:, :, 0]
-        max2 = top2[:, :, 1]
-        is_max = (correct_logits == max1)
-        max_other = torch.where(is_max, max2, max1)
-        margin = correct_logits - max_other
+        labels = labels.unsqueeze(1).unsqueeze(2)
+        labels = labels.expand(-1, 4, -1)   
+        probs = F.softmax(logits_tuple, dim=2)
         # key idea: using logits rather than probabilities because it'll produce really small values. also avoid logging this, although mathemtically it is indeed log p(y|x|z)
-        score = margin + torch.log(self.priors)
+        p_correct_given_exit = probs.gather(2, labels).squeeze(2)
+        p_correct = p_correct_given_exit * self.priors 
         # Numerator = log(P(correct | x, exit_k)) + log(P(exit_k)) - lambda * Cost
-        numerator = score - (self.lambda_val * self.costs + eps)
+        numerator = p_correct - (self.lambda_val * self.costs + eps)
         # Adding Denominator (which happens to create a softmax)
         assignments = F.softmax(numerator, dim=1)
         return assignments
