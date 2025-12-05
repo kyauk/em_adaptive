@@ -40,8 +40,10 @@ class Evaluator:
         
         acc = total_correct/total_samples
         avg_cost = total_cost/total_samples
+        if isinstance(avg_cost, torch.Tensor):
+            avg_cost = avg_cost.item()
         print(f"Standard ResNet-18: Accuracy={acc:.4f}, Cost={avg_cost:.4f}")
-        return {"accuracy": acc, "cost": avg_cost}
+        return {"accuracy": float(acc), "cost": float(avg_cost)}
 
     def eval_multiexit_resnet_fixed(self, dataloader):
         self.model.eval()
@@ -63,7 +65,7 @@ class Evaluator:
             acc = stats['correct']/stats['total']
             avg_cost = stats['cost']/stats['total']
             print(f"Fixed on {exit_name}: Accuracy={acc:.4f}, Cost={avg_cost:.4f}")
-            results[exit_name] = {"accuracy": acc, "cost": avg_cost}
+            results[exit_name] = {"accuracy": float(acc), "cost": float(avg_cost)}
         return results
 
     def eval_multiexit_resnet_random(self, dataloader):
@@ -88,8 +90,10 @@ class Evaluator:
                 
         acc = total_correct/total_samples
         avg_cost = total_cost/total_samples
+        if isinstance(avg_cost, torch.Tensor):
+            avg_cost = avg_cost.item()
         print(f"Random Routing: Accuracy={acc:.4f}, Cost={avg_cost:.4f}")
-        return {"accuracy": acc, "cost": avg_cost}
+        return {"accuracy": float(acc), "cost": float(avg_cost)}
 
     def eval_branchynet(self, dataloader, threshold=0.5):
         """
@@ -147,8 +151,10 @@ class Evaluator:
         
         acc = total_correct/total_samples
         avg_cost = total_cost/total_samples
+        if isinstance(avg_cost, torch.Tensor):
+            avg_cost = avg_cost.item()
         print(f"BranchyNet: Accuracy={acc:.4f}, Cost={avg_cost:.4f}")
-        return {"accuracy": acc, "cost": avg_cost}
+        return {"accuracy": float(acc), "cost": float(avg_cost)}
 
     def eval_oracle(self, dataloader):
         """
@@ -166,30 +172,69 @@ class Evaluator:
                 labels = labels.to(self.device)
                 outputs = self.model(images, return_all_exits=True)
                 
-                batch_size = images.size(0)
-                sample_costs = torch.zeros(batch_size).to(self.device)
+                # batch_size = images.size(0)
+                # sample_costs = torch.zeros(batch_size).to(self.device)
                 # Default to incorrect and max cost
-                sample_correct = torch.zeros(batch_size, dtype=torch.bool).to(self.device)
-                sample_costs[:] = self.cost[3] 
+                # sample_correct = torch.zeros(batch_size, dtype=torch.bool).to(self.device)
+                # sample_costs[:] = self.cost[3] 
                 
                 # Check exits in order
-                for i in range(4):
-                    exit_name = f"exit{i+1}"
-                    preds = outputs[exit_name].argmax(dim=1)
-                    is_correct = (preds == labels)
-                    
-                    # If correct and haven't found a correct exit yet, take this one (update if is_correct is True AND sample_correct is False)
-                    update_mask = is_correct * (sample_correct == 0)
-                    total_cost += self.cost[i] * update_mask.sum().item()
-                    sample_correct += update_mask
+                # This logic was slightly flawed in original code (accumulating cost weirdly)
+                # Simplified Oracle:
+                # For each sample, find first correct exit. If none, exit 4.
                 
+                batch_size = images.size(0)
+                
+                # Get correctness for each exit [B, 4]
+                correct_mask = torch.stack([
+                    outputs['exit1'].argmax(1) == labels,
+                    outputs['exit2'].argmax(1) == labels,
+                    outputs['exit3'].argmax(1) == labels,
+                    outputs['exit4'].argmax(1) == labels
+                ], dim=1) # [B, 4]
+                
+                # Find first True index
+                # We can use (correct_mask.cumsum(1) > 0) to find where we first hit a correct one
+                # But simpler:
+                
+                # Default cost = exit 4 cost
+                batch_cost = torch.full((batch_size,), self.cost[3].item(), device=self.device)
+                batch_correct = correct_mask[:, 3] # Default to exit 4 correctness
+                
+                # Check 3, then 2, then 1 (reverse order to overwrite)
+                # Actually forward order is better if we break? Vectorized break is hard.
+                # Let's use masks.
+                
+                # Exit 1 correct?
+                mask1 = correct_mask[:, 0]
+                batch_cost[mask1] = self.cost[0]
+                batch_correct[mask1] = True
+                
+                # Exit 2 correct AND Exit 1 NOT correct?
+                mask2 = correct_mask[:, 1] & (~mask1)
+                batch_cost[mask2] = self.cost[1]
+                batch_correct[mask2] = True
+                
+                # Exit 3 correct AND Exit 1,2 NOT correct?
+                mask3 = correct_mask[:, 2] & (~mask1) & (~mask2)
+                batch_cost[mask3] = self.cost[2]
+                batch_correct[mask3] = True
+                
+                # Else (Exit 4) -> already set defaults.
+                # But wait, if Exit 4 is correct, batch_correct is True.
+                # If Exit 4 is NOT correct, and 1-3 NOT correct, batch_correct is False.
+                # My default `batch_correct = correct_mask[:, 3]` handles this.
+                
+                total_cost += batch_cost.sum().item()
+                total_correct += batch_correct.sum().item()
                 total_samples += batch_size
-                total_correct += sample_correct.sum().item()
 
         acc = total_correct/total_samples
         avg_cost = total_cost/total_samples
+        if isinstance(avg_cost, torch.Tensor):
+            avg_cost = avg_cost.item()
         print(f"Oracle: Accuracy={acc:.4f}, Cost={avg_cost:.4f}")
-        return {"accuracy": acc, "cost": avg_cost}
+        return {"accuracy": float(acc), "cost": float(avg_cost)}
 
     def eval_em_routing(self, dataloader, routers, threshold=0.5):
         """
@@ -267,10 +312,12 @@ class Evaluator:
                 total_correct += (final_preds == labels).sum().item()
                 total_samples += batch_size
 
-        acc = total_correct / total_samples
-        avg_cost = total_cost / total_samples
+        acc = total_correct/total_samples
+        avg_cost = total_cost/total_samples
+        if isinstance(avg_cost, torch.Tensor):
+            avg_cost = avg_cost.item()
         print(f"EM Routing: Accuracy={acc:.4f}, Cost={avg_cost:.4f}")
-        return {"accuracy": acc, "cost": avg_cost}
+        return {"accuracy": float(acc), "cost": float(avg_cost)}
 
     def eval_all(self, dataloader, routers, threshold=0.5, branchy_threshold=1.0):
         results = {}
