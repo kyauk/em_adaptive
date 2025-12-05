@@ -32,7 +32,6 @@ class Config:
     # Data
     DATA_DIR = "./cifar-10-batches-py"
     BATCH_SIZE = 128
-    # note to self: make this changeable with argparse later
     NUM_WORKERS = 2
     
     # Model

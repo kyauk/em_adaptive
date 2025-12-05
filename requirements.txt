@@ -2,13 +2,7 @@
 torch>=2.0.0
 torchvision>=0.15.0
 
-# Scientific computing
-numpy==1.26.4
-scipy==1.13.1
-pandas==2.2.3
 
-# Machine learning
-scikit-learn==1.6.1
 
 # Visualization
 matplotlib==3.10.0

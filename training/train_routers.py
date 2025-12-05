@@ -1,9 +1,11 @@
+"""
+Train the routers for the multi-exit ResNet-18 backbone
+"""
 import torch
 import os
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from torchvision import datasets, transforms
 from models.routers import Router
 from algorithms.em_routing import EMRouting
 from algorithms.feature_cache import load_cached_features
@@ -11,7 +13,7 @@ from models.multi_exit_resnet import MultiExitResNet
 
 def train_routers(lambda_val=0.05):
     EPS = 1e-8
-    EPOCHS = 50  # Increase for better router convergence
+    EPOCHS = 50
     TRAIN_FEATURES_PATH = "cached_features_train.pt"
     BATCH_SIZE = 128
     device = torch.device('cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu')
@@ -58,10 +60,10 @@ def train_routers(lambda_val=0.05):
     router3 = Router(input_dim=f3.shape[1]).to(device)
     routers = [router1, router2, router3]
 
-    # Define Optimizers
+    # Optimizers
     optimizers = [optim.Adam(r.parameters(), lr=0.001) for r in routers]
     
-    # BCEWithLogitsLoss handles sigmoid + BCE numerically stably
+    # BCEWithLogitsLoss handles sigmoid + BCE numerically stable
     criterion = nn.BCEWithLogitsLoss()
 
     # Create New Dataset for Routers

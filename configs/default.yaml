@@ -4,7 +4,7 @@
 dataset:
   name: cifar10
   batch_size: 128
-  num_workers: 4
+  num_workers: 2
   pin_memory: true
 
 # Model
@@ -15,29 +15,28 @@ model:
   num_exits: 4
   exit_channels: [64, 128, 256, 512]
 
-# Training - Phase 1 (Exit Classifiers)
+# Training - Exit Classifiers
 training_exits:
-  epochs: 50
+  epochs: 30
   lr: 0.01
   momentum: 0.9
   weight_decay: 5e-4
   scheduler: cosine
   save_dir: checkpoints/exits
 
-# EM Algorithm - Phase 2 (Routing Discovery)
+# EM Algorithm
 em_routing:
-  lambda_val: 0.5  # Accuracy-efficiency tradeoff (0.1 to 1.0)
-  iterations: 10
+  lambda_val: 0.05
+  iterations: 5
   cost_type: linear  # k/4
-  save_dir: checkpoints/em_assignments
 
-# Training - Phase 3 (Routers)
+# Training - Routers
 training_routers:
-  epochs: 30
+  epochs: 50
   lr: 0.001
-  hidden_dim: 64
   save_dir: checkpoints/routers
 
 # Inference
 inference:
-  threshold: 0.5  # Confidence threshold (if using confidence baseline)
+  threshold: 0.5
+  branchy_threshold: 1.0

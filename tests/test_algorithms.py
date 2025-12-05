@@ -43,7 +43,7 @@ class TestEMRouting(unittest.TestCase):
 
     def test_m_step_update(self):
         # Checking if priors are updated correctly
-        # Create dummy assignments (Batch=2, Exits=4)
+        # Create simulated assignments (Batch=2, Exits=4)
         # Sample 1: 100% Exit 0
         # Sample 2: 100% Exit 1
         assignments = torch.tensor([

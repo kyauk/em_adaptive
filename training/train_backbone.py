@@ -1,3 +1,7 @@
+"""
+Goal of this script is to train the ResNet-18 backbone for CIFAR-10 dataset
+"""
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -8,7 +12,7 @@ from tqdm import tqdm
 
 def train_backbone():
     # Config
-    EPOCHS = 100  # Increase for better backbone accuracy (~90%+)
+    EPOCHS = 100  
     BATCH_SIZE = 128
     LR = 0.1
     MOMENTUM = 0.9
@@ -21,13 +25,10 @@ def train_backbone():
     # Data
     train_loader, test_loader = get_cifar10_loaders(batch_size=BATCH_SIZE)
     
-    # Model - Initialize with freeze_backbone=False to train it!
+    # Model - Initialize with freeze_backbone=False to train
     print("Initializing model...")
     model = MultiExitResNet(num_classes=10, freeze_backbone=False)
     model.to(device)
-    
-    # We only care about the final exit for backbone training
-    # But the model forward returns exit4 by default if return_all_exits=False
     
     # Optimizer
     optimizer = optim.SGD(model.parameters(), lr=LR, momentum=MOMENTUM, weight_decay=WEIGHT_DECAY)
@@ -63,7 +64,7 @@ def train_backbone():
             
         scheduler.step()
         
-        # Validation
+        # Validation for real-time monitoring
         model.eval()
         val_correct = 0
         val_total = 0

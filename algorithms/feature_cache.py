@@ -25,7 +25,7 @@ def cache_dataset_features(model, dataloader, save_path):
 
         for i in range(4):
             f = features[f'layer{i+1}']
-            # Optimization: Global Average Pool here to save massive memory
+            # Optimization: Global Average Pool here to save massive memory, as we don't need spatial dimensions
             # (B, C, H, W) -> (B, C)
             if f.dim() == 4:
                 f = torch.mean(f, dim=[2, 3])
@@ -46,7 +46,7 @@ def cache_dataset_features(model, dataloader, save_path):
     torch.save({'features': final_features,
             'labels': final_labels},
             save_path)
-    print(f"✓ Cached {len(final_labels)} samples to {save_path}")
+    print(f"Successfully cached {len(final_labels)} samples to {save_path}")
 
 
 def load_cached_features(load_path):
@@ -70,7 +70,7 @@ if __name__ == '__main__':
     backbone_path = 'checkpoints/backbone/resnet18_cifar10_best.pth'
     if os.path.exists(backbone_path):
         print(f"Loading backbone from {backbone_path}")
-        # We need to load state_dict but filter out exit layers if they exist in checkpoint (they shouldn't yet)
+        # We need to load state_dict but filter out exit layers if they exist in checkpoint as safety measure
         # The backbone training script saves the whole model state_dict
         state_dict = torch.load(backbone_path, map_location='cpu')
         missing, unexpected = model.load_state_dict(state_dict, strict=False)

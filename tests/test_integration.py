@@ -19,7 +19,7 @@ class TestIntegration(unittest.TestCase):
         self.model = MultiExitResNet(num_classes=10, freeze_backbone=True)
         self.model.to(self.device)
         
-        # Create dummy cached features
+        # Create example cached features
         batch_size = 10
         self.f1 = torch.randn(batch_size, 64, 32, 32)
         self.f2 = torch.randn(batch_size, 128, 16, 16)
@@ -31,17 +31,16 @@ class TestIntegration(unittest.TestCase):
         self.loader = DataLoader(self.dataset, batch_size=5)
 
     def test_full_training_loop(self):
-        # Simulating entire router training pipeline
         print("\nTesting Full Training Loop...")
         
-        # 1. EM Step
+        # EM Step
         em = EMRouting(self.model)
         assignments, _ = em.run(self.loader, iterations=2)
         hard_assignments = torch.argmax(assignments, dim=1)
         # Expect size to be batch size
         self.assertEqual(hard_assignments.shape, (batch_size,))
         
-        # 2. Router Training Step
+        # Router Training Step
         router1 = Router(input_dim=64, use_mlp=True).to(self.device)
         optimizer = optim.Adam(router1.parameters(), lr=0.001)
         criterion = nn.BCELoss()
@@ -65,7 +64,7 @@ class TestIntegration(unittest.TestCase):
             
         print("Training loop ran successfully")
         
-        # 3. Save Checkpoint (Mock)
+        # Save Checkpoint
         os.makedirs('tests/checkpoints_test', exist_ok=True)
         torch.save(router1.state_dict(), 'tests/checkpoints_test/router1.pth')
         self.assertTrue(os.path.exists('tests/checkpoints_test/router1.pth'))

@@ -129,15 +129,15 @@ class Evaluator:
                 total_cost += self.cost[0] * mask1.sum().item()
                 
                 # Mask for Exit 2: entropy < threshold AND didn't exit at Exit 1
-                mask2 = (entropies[1] < threshold) * (mask1 == 0)
+                mask2 = (entropies[1] < threshold) & (~mask1)
                 total_cost += self.cost[1] * mask2.sum().item()
                 
                 # Mask for Exit 3: entropy < threshold AND didn't exit at Exit 1, 2
-                mask3 = (entropies[2] < threshold) * (mask1 == 0) * (mask2 == 0)
+                mask3 = (entropies[2] < threshold) & (~mask1) & (~mask2)
                 total_cost += self.cost[2] * mask3.sum().item()
                 
                 # Exit 4: Everyone else
-                mask4 = (mask1 == 0) * (mask2 == 0) * (mask3 == 0)
+                mask4 = (~mask1) & (~mask2) & (~mask3)
                 total_cost += self.cost[3] * mask4.sum().item()
                 
                 # Fill predictions
@@ -172,17 +172,6 @@ class Evaluator:
                 labels = labels.to(self.device)
                 outputs = self.model(images, return_all_exits=True)
                 
-                # batch_size = images.size(0)
-                # sample_costs = torch.zeros(batch_size).to(self.device)
-                # Default to incorrect and max cost
-                # sample_correct = torch.zeros(batch_size, dtype=torch.bool).to(self.device)
-                # sample_costs[:] = self.cost[3] 
-                
-                # Check exits in order
-                # This logic was slightly flawed in original code (accumulating cost weirdly)
-                # Simplified Oracle:
-                # For each sample, find first correct exit. If none, exit 4.
-                
                 batch_size = images.size(0)
                 
                 # Get correctness for each exit [B, 4]
@@ -194,36 +183,26 @@ class Evaluator:
                 ], dim=1) # [B, 4]
                 
                 # Find first True index
-                # We can use (correct_mask.cumsum(1) > 0) to find where we first hit a correct one
-                # But simpler:
-                
-                # Default cost = exit 4 cost
+                # We have by defaut, just init to exit 4 being correct
                 batch_cost = torch.full((batch_size,), self.cost[3].item(), device=self.device)
                 batch_correct = correct_mask[:, 3] # Default to exit 4 correctness
                 
-                # Check 3, then 2, then 1 (reverse order to overwrite)
-                # Actually forward order is better if we break? Vectorized break is hard.
-                # Let's use masks.
-                
-                # Exit 1 correct?
+                # Exit 1
                 mask1 = correct_mask[:, 0]
                 batch_cost[mask1] = self.cost[0]
                 batch_correct[mask1] = True
                 
-                # Exit 2 correct AND Exit 1 NOT correct?
+                # Exit 2 and not Exit 1
                 mask2 = correct_mask[:, 1] & (~mask1)
                 batch_cost[mask2] = self.cost[1]
                 batch_correct[mask2] = True
                 
-                # Exit 3 correct AND Exit 1,2 NOT correct?
+                # Exit 3 and not Exit 1,2
                 mask3 = correct_mask[:, 2] & (~mask1) & (~mask2)
                 batch_cost[mask3] = self.cost[2]
                 batch_correct[mask3] = True
                 
-                # Else (Exit 4) -> already set defaults.
-                # But wait, if Exit 4 is correct, batch_correct is True.
-                # If Exit 4 is NOT correct, and 1-3 NOT correct, batch_correct is False.
-                # My default `batch_correct = correct_mask[:, 3]` handles this.
+                # Else (Exit 4): already set default.
                 
                 total_cost += batch_cost.sum().item()
                 total_correct += batch_correct.sum().item()
@@ -322,21 +301,15 @@ class Evaluator:
     def eval_all(self, dataloader, routers, threshold=0.5, branchy_threshold=1.0):
         results = {}
         results['resnet'] = self.eval_resnet(dataloader)
-        
-        # MultiExit Fixed
         fixed_res = self.eval_multiexit_resnet_fixed(dataloader)
         for k, v in fixed_res.items():
             results[f'fixed_{k}'] = v
-            
         results['random'] = self.eval_multiexit_resnet_random(dataloader)
         results['branchynet'] = self.eval_branchynet(dataloader, threshold=branchy_threshold)
         results['em_routing'] = self.eval_em_routing(dataloader, routers=routers, threshold=threshold)
         results['oracle'] = self.eval_oracle(dataloader)
         return results
         
-                
-
-                
 
                 
 

@@ -35,26 +35,8 @@ def plot_pareto_frontier():
         plt.scatter(values['cost'], values['acc'], label=f'Lambda={lam}', alpha=0.6)
 
     # Compute Pareto Frontier (Convex Hull / Upper Envelope)
-    # Sort by cost
-    all_points.sort(key=lambda x: x[0])
-    
-    pareto_front = []
-    current_max_acc = -1.0
-    
-    # We want the max accuracy for any cost <= c. 
-    # Actually, standard Pareto is: for a given cost, maximize accuracy.
-    # So we iterate through sorted costs. If a point has higher accuracy than any previous point, it's on the frontier.
-    # BUT, we might have a point with higher cost but LOWER accuracy (dominated).
-    # We want the "upper left" boundary.
-    
-    # Simple algorithm:
-    # 1. Sort by Cost
-    # 2. Iterate and keep point if Acc > max_acc_so_far
-    # Wait, that's for "min cost for max acc".
-    # We want "max acc for min cost".
-    
-    # Let's do: Sort by Accuracy DESCENDING.
-    # Then keep point if Cost < min_cost_so_far.
+    # We want to find the set of points that maximize accuracy for a given cost.
+    # Algorithm: Sort by Accuracy (descending), then keep point if Cost < min_cost_so_far.
     
     all_points_by_acc = sorted(all_points, key=lambda x: x[1], reverse=True)
     pareto_points = []

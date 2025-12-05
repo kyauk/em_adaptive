@@ -14,12 +14,12 @@ def run_pareto_sweep():
     
     #Train Routers with different Lambdas
     for lam in lambda_vals:
-        print(f"\n--- Training with Lambda={lam} ---")
+        print(f"\nTraining with Lambda={lam}...")
         # Train routers for this specific lambda
         train_models("train_routers", lambda_val=lam)
         # Evaluate with different Thresholds
         for thresh in thresholds:
-            print(f"   Evaluating Threshold={thresh:.2f}...")
+            print(f"Evaluating Threshold={thresh:.2f}...")
             metrics = evaluate_models("em_routing", threshold=thresh)
             
             # store results
@@ -35,7 +35,7 @@ def run_pareto_sweep():
             with open("results/pareto_results.json", "w") as f:
                 json.dump(results, f, indent=4)
                 
-    print("\n=== Pareto Sweep Complete ===")
+    print("\nPARETO SWEEP COMPLETE\n")
     print(f"Results saved to results/pareto_results.json")
 
 if __name__ == "__main__":

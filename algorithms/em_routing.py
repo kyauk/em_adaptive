@@ -4,8 +4,6 @@ EM Routing Algorithm
 Implements the Expectation-Maximization (EM) algorithm to find optimal routing assignments.
 Since our backbone and exit classifiers are frozen, we only need the E-step to compute
 the "ground truth" assignments for the router to learn.
-
-Utility = I(correct) - lambda * Cost
 """
 
 import torch
@@ -53,10 +51,13 @@ class EMRouting:
         # expand labels to match the shape of logits_tuple
         labels = labels.unsqueeze(1).unsqueeze(2)
         labels = labels.expand(-1, 4, -1)   
+        # Use log-probabilities for numerical stability
+        # p_correct = log(P(correct | x, exit_k)) + log(P(exit_k))
         log_probs = F.log_softmax(logits_tuple, dim=2)
         p_correct_given_exit = log_probs.gather(2, labels).squeeze(2)
         p_correct = p_correct_given_exit + torch.log(self.priors)[None, :]
-        # Numerator = log(P(correct | x, exit_k)) + log(P(exit_k)) - lambda * Cost
+        
+        # Calculate numerator for posterior: log(P(z=k, y|x)) = log(P(y|x,z)) + log(P(z)) - lambda * Cost
         numerator = p_correct - (self.lambda_val * self.costs[None, :])
         # Adding Denominator (which happens to create a softmax)
         assignments = F.softmax(numerator, dim=1)

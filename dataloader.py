@@ -95,7 +95,7 @@ def get_cifar10_loaders(data_dir='./cifar-10-batches-py', batch_size=128,
         normalize,
     ])
     
-    # Test transforms (no augmentation)
+    # Test transforms
     test_transform = transforms.Compose([
         transforms.ToPILImage(),
         transforms.ToTensor(),
@@ -145,7 +145,6 @@ CIFAR10_CLASSES = [
 
 
 def get_class_names():
-    """Return CIFAR-10 class names"""
     return CIFAR10_CLASSES
 
 
@@ -171,4 +170,4 @@ if __name__ == '__main__':
     print(f"Sample labels: {labels[:10].tolist()}")
     print(f"\nClass names: {CIFAR10_CLASSES}")
     
-    print("\n✓ DataLoader working correctly!")
+    print("\nSuccess: DataLoader working correctly!")
