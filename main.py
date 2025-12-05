@@ -75,9 +75,9 @@ def setup_model(device=Config.DEVICE, load_backbone=True, load_exits=False):
 
 def setup_routers(device=Config.DEVICE, load_routers=False):
     routers = [
-        Router(input_dim=64, hidden_dim=Config.ROUTER_HIDDEN_DIM).to(device),
-        Router(input_dim=128, hidden_dim=Config.ROUTER_HIDDEN_DIM).to(device),
-        Router(input_dim=256, hidden_dim=Config.ROUTER_HIDDEN_DIM).to(device)
+        Router(input_dim=64).to(device),
+        Router(input_dim=128).to(device),
+        Router(input_dim=256).to(device)
     ]
 
     if load_routers:

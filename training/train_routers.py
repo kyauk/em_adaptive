@@ -10,10 +10,10 @@ from algorithms.feature_cache import load_cached_features
 from models.multi_exit_resnet import MultiExitResNet
 
 def train_routers(lambda_val=0.05):
+    EPS = 1e-8
     EPOCHS = 50  # Increase for better router convergence
     TRAIN_FEATURES_PATH = "cached_features_train.pt"
     BATCH_SIZE = 128
-    USE_MLP = True  # Toggle: True for MLP, False for Linear
     device = torch.device('cuda' if torch.cuda.is_available() else 'mps' if torch.backends.mps.is_available() else 'cpu')
     print(f"Using device: {device}")
 
@@ -51,108 +51,60 @@ def train_routers(lambda_val=0.05):
     em = EMRouting(model, lambda_val=lambda_val)
     assignments, all_labels = em.run(train_loader)
 
-    # Compute Hard Assignments
-    hard_assignments = torch.argmax(assignments, dim=1)
-    print(f"EM Assignments Distribution: {torch.bincount(hard_assignments)}")
-
     # Initialize Routers
-    print(f"Initializing Routers (USE_MLP={USE_MLP})...")
-    router1 = Router(input_dim=f1.shape[1], use_mlp=USE_MLP).to(device)
-    router2 = Router(input_dim=f2.shape[1], use_mlp=USE_MLP).to(device)
-    router3 = Router(input_dim=f3.shape[1], use_mlp=USE_MLP).to(device)
+    print(f"Initializing Routers (Linear Logits)...")
+    router1 = Router(input_dim=f1.shape[1]).to(device)
+    router2 = Router(input_dim=f2.shape[1]).to(device)
+    router3 = Router(input_dim=f3.shape[1]).to(device)
     routers = [router1, router2, router3]
-
-    # Calculate class weights for imbalance
-    # pos_weight = (num_neg / num_pos)
-    total = len(hard_assignments)
-    
-    n_pos1 = (hard_assignments == 0).sum().item()
-    w1 = (total - n_pos1) / (n_pos1 + 1e-5)
-    
-    n_pos2 = (hard_assignments == 1).sum().item()
-    w2 = (total - n_pos2) / (n_pos2 + 1e-5)
-    
-    n_pos3 = (hard_assignments == 2).sum().item()
-    w3 = (total - n_pos3) / (n_pos3 + 1e-5)
-    
-    print(f"Pos Weights: W1={w1:.2f}, W2={w2:.2f}, W3={w3:.2f}")
 
     # Define Optimizers
     optimizers = [optim.Adam(r.parameters(), lr=0.001) for r in routers]
     
-    # Custom Weighted BCE Loss
-    def weighted_bce(pred, target, weight):
-        # clamp for stability
-        pred = torch.clamp(pred, 1e-7, 1 - 1e-7)
-        loss = - (weight * target * torch.log(pred) + (1 - target) * torch.log(1 - pred))
-        return loss.mean()
+    # BCEWithLogitsLoss handles sigmoid + BCE numerically stably
+    criterion = nn.BCEWithLogitsLoss()
 
     # Create New Dataset for Routers
-    router_dataset = torch.utils.data.TensorDataset(f1, f2, f3, hard_assignments)
+    router_dataset = torch.utils.data.TensorDataset(f1, f2, f3, assignments)
     router_loader = DataLoader(router_dataset, batch_size=BATCH_SIZE, shuffle=True)
 
     # Training Loop for Routers
     for epoch in range(EPOCHS):
         print(f"Epoch {epoch+1}/{EPOCHS}")
         for batch in router_loader:
-            bf1, bf2, bf3, b_labels = batch
+            bf1, bf2, bf3, b_assignments = batch
             bf1, bf2, bf3 = bf1.to(device), bf2.to(device), bf3.to(device)
-            b_labels = b_labels.to(device)
+            b_assignments = b_assignments.to(device)
             
-            # CASCADING TRAINING: Each router only trains on samples that would reach it
-            
-            # Router 1: sees ALL samples, predicts "should I exit here?"
-            target1 = (b_labels == 0).float().unsqueeze(1)
+            # Router 1
+            target1 = b_assignments[:, 0:1] 
             router1.train()
             optimizers[0].zero_grad()
             pred1 = router1(bf1)
-            loss1 = weighted_bce(pred1, target1, w1)
+            loss1 = criterion(pred1, target1)
             loss1.backward()
             optimizers[0].step()
             
-            # Router 2: only sees samples that DIDN'T exit at 1 (EM assigned to exit >= 1)
-            # For these samples, predict "should I exit here?"
-            mask_reached_2 = (b_labels >= 1)  # Samples that reach exit 2
-            if mask_reached_2.sum() > 0:
-                bf2_filtered = bf2[mask_reached_2]
-                # Among samples reaching exit 2, target is 1 if EM said exit at 2
-                target2 = (b_labels[mask_reached_2] == 1).float().unsqueeze(1)
-                router2.train()
-                optimizers[1].zero_grad()
-                pred2 = router2(bf2_filtered)
-                loss2 = weighted_bce(pred2, target2, w2)
-                loss2.backward()
-                optimizers[1].step()
-            else:
-                loss2 = torch.tensor(0.0)
-            
-            # Router 3: only sees samples that DIDN'T exit at 1 or 2 (EM assigned to exit >= 2)
-            mask_reached_3 = (b_labels >= 2)  # Samples that reach exit 3
-            if mask_reached_3.sum() > 0:
-                bf3_filtered = bf3[mask_reached_3]
-                # Among samples reaching exit 3, target is 1 if EM said exit at 3
-                target3 = (b_labels[mask_reached_3] == 2).float().unsqueeze(1)
-                router3.train()
-                optimizers[2].zero_grad()
-                pred3 = router3(bf3_filtered)
-                loss3 = weighted_bce(pred3, target3, w3)
-                loss3.backward()
-                optimizers[2].step()
-            else:
-                loss3 = torch.tensor(0.0)
-            
-            # Calculate accuracy (on full batch for router 1, filtered for 2,3)
-            acc1 = ((pred1 > 0.5).float() == target1).float().mean().item()
-            if mask_reached_2.sum() > 0:
-                acc2 = ((pred2 > 0.5).float() == target2).float().mean().item()
-            else:
-                acc2 = 0.0
-            if mask_reached_3.sum() > 0:
-                acc3 = ((pred3 > 0.5).float() == target3).float().mean().item()
-            else:
-                acc3 = 0.0
-            
-        print(f"Epoch {epoch+1}/{EPOCHS} complete. Loss: {loss1.item():.4f}, {loss2.item():.4f}, {loss3.item():.4f} | Acc: {acc1:.4f}, {acc2:.4f}, {acc3:.4f}")
+            # Router 2
+            # p(e2, given not p1) = assignment_2 / (assignments_2 + assignments_3 + assignments_4)
+            target2 = b_assignments[:, 1:2] / (b_assignments[:, 1:].sum(dim=1, keepdim=True) + EPS)
+            router2.train()
+            optimizers[1].zero_grad()
+            pred2 = router2(bf2)
+            loss2 = criterion(pred2, target2)
+            loss2.backward()
+            optimizers[1].step()
+
+            # Router 3
+            # p(e3 | not e1, not e2) = assignment_3 / (assignments_3 + assignments_4)
+            target3 = b_assignments[:, 2:3] / (b_assignments[:, 2:].sum(dim=1, keepdim=True) + EPS)   
+            router3.train()
+            optimizers[2].zero_grad()
+            pred3 = router3(bf3)
+            loss3 = criterion(pred3, target3)
+            loss3.backward()
+            optimizers[2].step()
+        print(f"Epoch {epoch+1}/{EPOCHS} complete.")
 
     os.makedirs('checkpoints', exist_ok=True)
     torch.save({

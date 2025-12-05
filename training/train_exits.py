@@ -46,7 +46,6 @@ def train_exits():
     print(f"Using device: {device}")
     
     # Init Model
-    # Init Model
     print("Initializing model...")
     model = MultiExitResNet(num_classes=10, freeze_backbone=True)
     
@@ -61,9 +60,12 @@ def train_exits():
         
     model.to(device)
     
-    # Data Prep
-    train_loader = create_dataloaders('cached_features_train.pt', config['dataset']['batch_size'])
-    test_loader = create_dataloaders('cached_features_test.pt', config['dataset']['batch_size'])
+    # Data Prep (Use standard dataloaders, not cached features)
+    from dataloader import get_cifar10_loaders
+    train_loader, test_loader = get_cifar10_loaders(
+        data_dir='./cifar-10-batches-py',
+        batch_size=config['dataset']['batch_size']
+    )
     
     # Setup Optimizer
     print("Setting up optimizer...")
@@ -94,23 +96,20 @@ def train_exits():
         model.train()
         total_loss = 0
 
-        """
-        basic DL training pipeline goes:
-        zero out the gradients to get rid of last iter's grads
-        1. forward pass to get score and loss
-        2. backward pass 
-        3. optimize
-        """
         pbar = tqdm(train_loader, desc=f"Epoch {epoch + 1}")
-        for f1, f2, f3, f4, labels in pbar:
-            f1, f2, f3, f4 = f1.to(device), f2.to(device), f3.to(device), f4.to(device)
-            labels = labels.to(device)
+        for images, labels in pbar:
+            images, labels = images.to(device), labels.to(device)
+            
             optimizer.zero_grad()
-            # forward pass
-            out1 = model.exit1(f1)
-            out2 = model.exit2(f2)
-            out3 = model.exit3(f3)
-            out4 = model.exit4(f4)
+            
+            # Forward pass (computes features on the fly)
+            # return_all_exits=True returns dict of outputs
+            outputs = model(images, return_all_exits=True)
+            
+            out1 = outputs['exit1']
+            out2 = outputs['exit2']
+            out3 = outputs['exit3']
+            out4 = outputs['exit4']
             
             # compute total loss
             loss = criterion(out1, labels) + criterion(out2, labels) + criterion(out3, labels) + criterion(out4, labels) 
@@ -152,16 +151,16 @@ def evaluate(model, dataloader, device):
     total = 0
     
     with torch.no_grad():
-        for f1, f2, f3, f4, labels in dataloader:
-            f1, f2, f3, f4 = f1.to(device), f2.to(device), f3.to(device), f4.to(device)
-            labels = labels.to(device)
+        for images, labels in dataloader:
+            images, labels = images.to(device), labels.to(device)
             
             # Get predictions from each exit
+            outputs = model(images, return_all_exits=True)
             outs = [
-                model.exit1(f1),
-                model.exit2(f2),
-                model.exit3(f3),
-                model.exit4(f4)
+                outputs['exit1'],
+                outputs['exit2'],
+                outputs['exit3'],
+                outputs['exit4']
             ]
             
             total += labels.size(0)

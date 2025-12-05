@@ -12,6 +12,7 @@ import torch
 import torch.nn.functional as F
 from tqdm import tqdm
 
+eps = 1e-10
 class EMRouting:
     def __init__(self, model, lambda_val=0.05):
         """
@@ -39,7 +40,6 @@ class EMRouting:
         Returns:
             assignments: Soft assignments [B, 4]
         """
-        eps = 1e-10
         # Get logits from all exits
         # each feature tensor is [B, C, H, W]
         # each out is [B, ]
@@ -50,11 +50,12 @@ class EMRouting:
         out4 = self.model.exit4(f4)
         logits_tuple = torch.stack([out1, out2, out3, out4], dim=1)
         # Calculate P(correct | x, exit_k)
-        probs = F.softmax(logits_tuple, dim=2)
+        # expand labels to match the shape of logits_tuple
         labels = labels.unsqueeze(1).unsqueeze(2)
-        labels = labels.expand(-1, 4, -1)
-        log_p_correct_given_exit = torch.log(probs.gather(2, labels).squeeze(2))
-        p_correct = log_p_correct_given_exit + torch.log(self.priors)
+        labels = labels.expand(-1, 4, -1)   
+        # key idea: using logits rather than probabilities because it'll produce really small values. also avoid logging this, although mathemtically it is indeed log p(y|x|z)
+        p_correct_given_exit = logits_tuple.gather(2, labels).squeeze(2)
+        p_correct = p_correct_given_exit + torch.log(self.priors)
         # Numerator = log(P(correct | x, exit_k)) + log(P(exit_k)) - lambda * Cost
         numerator = p_correct - (self.lambda_val * self.costs + eps)
         # Adding Denominator (which happens to create a softmax)
@@ -70,6 +71,8 @@ class EMRouting:
         """
         # Calculate mean of assignments across the dataset 
         new_priors = all_assignments.mean(dim=0)
+        new_priors += eps
+        new_priors = new_priors / new_priors.sum()
         # Update self.priors with these new values
         self.priors = new_priors.to(self.device)
         # Print the new priors to track progress

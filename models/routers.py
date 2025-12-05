@@ -2,38 +2,21 @@ import torch
 import torch.nn as nn
 
 class Router(nn.Module):
-    def __init__(self, input_dim, hidden_dim=64, use_mlp=True):
+    def __init__(self, input_dim):
         """
-        Lightweight 2-layer router network.
+        Lightweight linear router network.
         Args:
             input_dim: Dimension of input features (e.g., 64, 128, 256)
-            hidden_dim: Hidden layer dimension
-            use_mlp: Whether to use a 2-layer MLP (True) or a simple linear layer (False)
 
         Model Architecture:
-        Input (B, C, H, W) -> Global Average Pooling -> (B, C) -> Router -> (B, 1) -> Sigmoid -> (B, 1) 
+        Input (B, C, H, W) -> Global Average Pooling -> (B, C) -> Linear -> (B, 1) (Logits)
         """
         super(Router, self).__init__()
-        if use_mlp:
-            self.net = nn.Sequential(
-                nn.Linear(input_dim, hidden_dim),
-                nn.ReLU(),
-                nn.Linear(hidden_dim, hidden_dim),  # Extra layer
-                nn.ReLU(),
-                nn.Linear(hidden_dim, 1),
-                nn.Sigmoid()
-            )
-        else:
-            self.net = nn.Sequential(
-                nn.Linear(input_dim, 1),
-                nn.Sigmoid()
-            )
-        
-
+        self.net = nn.Linear(input_dim, 1)
 
     def forward(self, x):
         """
-        Returns probability of exiting (0 to 1).
+        Returns logits of exiting (unbounded).
         """
         # Normalize input shape (B, C, H, W) -> Global Average Pooling -> (B, C)
         if x.dim() == 4:

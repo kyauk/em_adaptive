@@ -219,49 +219,51 @@ class Evaluator:
                 has_exited = torch.zeros(batch_size, dtype=torch.bool).to(self.device)
                 final_preds = torch.zeros(batch_size, dtype=torch.long).to(self.device)
                 
-                # --- Exit 1 ---
+                # Exit 1
                 f1 = features['feature1']
-                p1 = routers[0](f1).squeeze(1) # [B, 1] -> [B]
+                # Router returns logits, apply sigmoid to get probability
+                p1 = torch.sigmoid(routers[0](f1)).squeeze(1) # [B, 1] -> [B]
                 # Exit if p1 > threshold AND hasn't exited
                 mask1 = (p1 > threshold) & (~has_exited)
-                
+                # apply masking
                 if mask1.any():
                     preds1 = outputs['exit1'][mask1].argmax(dim=1)
                     final_preds[mask1] = preds1
                     total_cost += self.cost[0].item() * mask1.sum().item()
-                    has_exited = has_exited | mask1
+                    # marks all the samples that exited at Exit 1
+                    has_exited |= mask1
 
-                # --- Exit 2 ---
+                # Exit 2
                 f2 = features['feature2']
-                p2 = routers[1](f2).squeeze(1)
+                p2 = torch.sigmoid(routers[1](f2)).squeeze(1)
                 mask2 = (p2 > threshold) & (~has_exited)
-                
+                # apply masking
                 if mask2.any():
                     preds2 = outputs['exit2'][mask2].argmax(dim=1)
                     final_preds[mask2] = preds2
                     total_cost += self.cost[1].item() * mask2.sum().item()
-                    has_exited = has_exited | mask2
+                    has_exited |= mask2
 
-                # --- Exit 3 ---
+                # Exit 3
                 f3 = features['feature3']
-                p3 = routers[2](f3).squeeze(1)
+                p3 = torch.sigmoid(routers[2](f3)).squeeze(1)
                 mask3 = (p3 > threshold) & (~has_exited)
-                
+                # apply masking
                 if mask3.any():
                     preds3 = outputs['exit3'][mask3].argmax(dim=1)
                     final_preds[mask3] = preds3
                     total_cost += self.cost[2].item() * mask3.sum().item()
-                    has_exited = has_exited | mask3
+                    has_exited |= mask3
 
-                # --- Exit 4 (Final Fallback) ---
+                # Exit 4
                 mask4 = ~has_exited
                 if mask4.any():
                     preds4 = outputs['exit4'][mask4].argmax(dim=1)
                     final_preds[mask4] = preds4
                     total_cost += self.cost[3].item() * mask4.sum().item()
-                    has_exited = has_exited | mask4
+                    has_exited |= mask4
                 
-                # Accumulate stats
+                # Tally up
                 total_correct += (final_preds == labels).sum().item()
                 total_samples += batch_size
 
