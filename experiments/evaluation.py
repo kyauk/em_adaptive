@@ -272,14 +272,20 @@ class Evaluator:
         print(f"EM Routing: Accuracy={acc:.4f}, Cost={avg_cost:.4f}")
         return {"accuracy": acc, "cost": avg_cost}
 
-    def eval_all(self, dataloader, routers, threshold=0.5):
-        self.eval_resnet(dataloader)
-        self.eval_multiexit_resnet_fixed(dataloader)
-        self.eval_multiexit_resnet_random(dataloader)
-        self.eval_branchynet(dataloader, threshold=threshold)
-        self.eval_em_routing(dataloader, routers=routers, threshold=threshold)
-        self.eval_oracle(dataloader)
-        return
+    def eval_all(self, dataloader, routers, threshold=0.5, branchy_threshold=1.0):
+        results = {}
+        results['resnet'] = self.eval_resnet(dataloader)
+        
+        # MultiExit Fixed
+        fixed_res = self.eval_multiexit_resnet_fixed(dataloader)
+        for k, v in fixed_res.items():
+            results[f'fixed_{k}'] = v
+            
+        results['random'] = self.eval_multiexit_resnet_random(dataloader)
+        results['branchynet'] = self.eval_branchynet(dataloader, threshold=branchy_threshold)
+        results['em_routing'] = self.eval_em_routing(dataloader, routers=routers, threshold=threshold)
+        results['oracle'] = self.eval_oracle(dataloader)
+        return results
         
                 
 

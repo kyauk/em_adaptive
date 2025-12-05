@@ -103,30 +103,35 @@ def train_models(mode, lambda_val=0.05):
         print("Routers trained!")
 
 # evaluation
-def evaluate_models(method, threshold=0.5):
+def evaluate_models(method, threshold=0.5, branchy_threshold=1.0):
     model = setup_model(load_exits = True)
     evaluator = Evaluator(model)
     _, test_loader = get_dataloader()
     routers = None
     if method in ["em_routing", "all"]:
         routers = setup_routers(load_routers=True)
+    
+    results = None
     if method == "resnet":
-        return evaluator.eval_resnet(test_loader)
+        results = evaluator.eval_resnet(test_loader)
     elif method == "multiexit_fixed":
-        return evaluator.eval_multiexit_resnet_fixed(test_loader)
+        results = evaluator.eval_multiexit_resnet_fixed(test_loader)
     elif method == "multiexit_random":
-        return evaluator.eval_multiexit_resnet_random(test_loader)
+        results = evaluator.eval_multiexit_resnet_random(test_loader)
     elif method == "branchynet":
-        return evaluator.eval_branchynet(test_loader, threshold=threshold)
+        results = evaluator.eval_branchynet(test_loader, threshold=branchy_threshold)
     elif method == "em_routing":
-        return evaluator.eval_em_routing(test_loader, routers=routers, threshold=threshold)
+        results = evaluator.eval_em_routing(test_loader, routers=routers, threshold=threshold)
     elif method == "oracle":
-        return evaluator.eval_oracle(test_loader)
+        results = evaluator.eval_oracle(test_loader)
     elif method == "all":
-        return evaluator.eval_all(test_loader, routers=routers, threshold=threshold)
+        results = evaluator.eval_all(test_loader, routers=routers, threshold=threshold, branchy_threshold=branchy_threshold)
+        # Plot comparison
+        from experiments.visualization import plot_comparison_bars
+        plot_comparison_bars(results)
     else:
         raise ValueError(f"Invalid method: {method}")
-    
+    return results
 
 def main():
     parser = argparse.ArgumentParser(description="EM Adaptive Computation Orchestrator")
@@ -151,7 +156,9 @@ def main():
     parser.add_argument("--lambda_val", type=float, default=0.05, 
                         help="Lambda for EM routing (trade-off parameter)")
     parser.add_argument("--threshold", type=float, default=0.5, 
-                        help="Entropy/Probability threshold for early exiting")
+                        help="Probability threshold for EM early exiting")
+    parser.add_argument("--branchy_threshold", type=float, default=1.0, 
+                        help="Entropy threshold for BranchyNet early exiting")
     
     args = parser.parse_args()
     
@@ -165,6 +172,6 @@ def main():
         
     elif args.mode == "evaluate":
         print(f"Evaluation Method: {args.method}")
-        evaluate_models(args.method, threshold=args.threshold)
+        evaluate_models(args.method, threshold=args.threshold, branchy_threshold=args.branchy_threshold)
 if __name__ == "__main__":
     main()
