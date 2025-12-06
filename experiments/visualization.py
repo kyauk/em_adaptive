@@ -97,6 +97,58 @@ def plot_pareto_frontier():
     plt.savefig(output_path)
     print(f"Plot saved to {output_path}")
 
+def plot_lambda_curves():
+    """
+    Plots Cost vs Accuracy for each Lambda value as a connected curve.
+    Uses results/lambda_curves_results.json or pareto_results.json.
+    """
+    # Prefer dedicated results file, fall back to pareto
+    results_path = "results/lambda_curves_results.json"
+    if not os.path.exists(results_path):
+        results_path = "results/pareto_results.json"
+        
+    if not os.path.exists(results_path):
+        print(f"No results found at {results_path}.")
+        return
+
+    with open(results_path, 'r') as f:
+        data = json.load(f)
+
+    # Group by Lambda
+    groups = {}
+    for entry in data:
+        lam = entry['lambda']
+        if lam not in groups:
+            groups[lam] = {'cost': [], 'acc': [], 'thresh': []}
+        groups[lam]['cost'].append(entry['cost'])
+        groups[lam]['acc'].append(entry['accuracy'])
+        groups[lam]['thresh'].append(entry['threshold'])
+
+    plt.figure(figsize=(10, 6))
+    
+    # Sort lambda values for consistent legend order
+    sorted_lambdas = sorted(groups.keys())
+    
+    for lam in sorted_lambdas:
+        values = groups[lam]
+        # Sort points by cost to draw a nice line
+        # Zip them, sort by cost, unzip
+        points = sorted(zip(values['cost'], values['acc']), key=lambda x: x[0])
+        costs = [p[0] for p in points]
+        accs = [p[1] for p in points]
+        
+        plt.plot(costs, accs, marker='o', linewidth=2, label=f'Lambda={lam}')
+
+    plt.xlabel('Computational Cost (Normalized)')
+    plt.ylabel('Accuracy')
+    plt.title('Accuracy vs Cost Tradeoff (per Lambda)')
+    plt.grid(True, linestyle='--', alpha=0.7)
+    plt.legend(title="Lambda")
+    
+    output_path = "results/lambda_curves_plot.png"
+    plt.savefig(output_path)
+    print(f"Lambda Curves Plot saved to {output_path}")
+
 def plot_comparison_bars(results):
     """
     Plot bar chart comparing all methods.
