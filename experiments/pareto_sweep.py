@@ -5,7 +5,7 @@ from main import train_models, evaluate_models, Config
 
 def run_pareto_sweep():
     # Define Sweep Params
-    lambda_vals = [1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0]
+    lambda_vals = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
     thresholds = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
     
     results = []
@@ -37,6 +37,11 @@ def run_pareto_sweep():
                 
     print("\nPARETO SWEEP COMPLETE\n")
     print(f"Results saved to results/pareto_results.json")
+    
+    # Generate the Comparison Plot
+    print("\nGenerating Pareto vs BranchyNet Comparison Plot...")
+    from experiments.visualization import plot_pareto_frontier
+    plot_pareto_frontier()
 
 if __name__ == "__main__":
     run_pareto_sweep()
