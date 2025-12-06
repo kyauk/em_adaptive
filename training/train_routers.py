@@ -52,6 +52,29 @@ def train_routers(lambda_val=0.05):
     print(f"Running EM to generate targets (Lambda={lambda_val})...")
     em = EMRouting(model, lambda_val=lambda_val)
     assignments, all_labels = em.run(train_loader)
+    
+    # --- SAVE EM STATS [NEW] ---
+    # Calculate distribution of exits (Hard Assignments for visualization)
+    # assignments is [N, 4]
+    # Argmax to get selected exit (0..3)
+    selected_exits = torch.argmax(assignments, dim=1)
+    # Count occurrences
+    counts = [torch.sum(selected_exits == i).item() for i in range(4)]
+    total = sum(counts)
+    proportions = [c / total for c in counts]
+    
+    stats = {
+        "lambda": lambda_val,
+        "counts": counts,
+        "proportions": proportions
+    }
+    
+    os.makedirs("results", exist_ok=True)
+    with open(f"results/em_stats_lambda_{lambda_val}.json", "w") as f:
+        import json
+        json.dump(stats, f, indent=4)
+    print(f"Saved EM Stats to results/em_stats_lambda_{lambda_val}.json")
+    # ---------------------------
 
     # Initialize Routers
     print(f"Initializing Routers (Linear Logits)...")
@@ -65,6 +88,10 @@ def train_routers(lambda_val=0.05):
     
     # BCEWithLogitsLoss handles sigmoid + BCE numerically stable
     criterion = nn.BCEWithLogitsLoss()
+    
+    # Metrics [NEW]
+    from experiments.metrics import RouterMetrics
+    metrics = RouterMetrics()
 
     # Create New Dataset for Routers
     router_dataset = torch.utils.data.TensorDataset(f1, f2, f3, assignments)
@@ -72,7 +99,9 @@ def train_routers(lambda_val=0.05):
 
     # Training Loop for Routers
     for epoch in range(EPOCHS):
-        print(f"Epoch {epoch+1}/{EPOCHS}")
+        # clean metrics for new epoch
+        metrics.reset() 
+        
         for batch in router_loader:
             bf1, bf2, bf3, b_assignments = batch
             bf1, bf2, bf3 = bf1.to(device), bf2.to(device), bf3.to(device)
@@ -86,6 +115,7 @@ def train_routers(lambda_val=0.05):
             loss1 = criterion(pred1, target1)
             loss1.backward()
             optimizers[0].step()
+            metrics.update(pred1, target1) # Log metrics
             
             # Router 2
             # p(e2, given not p1) = assignment_2 / (assignments_2 + assignments_3 + assignments_4)
@@ -96,6 +126,7 @@ def train_routers(lambda_val=0.05):
             loss2 = criterion(pred2, target2)
             loss2.backward()
             optimizers[1].step()
+            metrics.update(pred2, target2) # Log metrics
 
             # Router 3
             # p(e3 | not e1, not e2) = assignment_3 / (assignments_3 + assignments_4)
@@ -106,7 +137,13 @@ def train_routers(lambda_val=0.05):
             loss3 = criterion(pred3, target3)
             loss3.backward()
             optimizers[2].step()
-        print(f"Epoch {epoch+1}/{EPOCHS} complete.")
+            metrics.update(pred3, target3) # Log metrics
+            
+        # End of Epoch
+        epoch_metrics = metrics.record_epoch(epoch+1)
+        if (epoch+1) % 5 == 0:
+            print(f"Epoch {epoch+1}/{EPOCHS} | Router Acc: {epoch_metrics['accuracy']:.4f} | CE: {epoch_metrics['ce_loss']:.4f}")
+            metrics.plot(save_dir="results")
 
     os.makedirs('checkpoints', exist_ok=True)
     torch.save({
